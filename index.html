@@ -2436,7 +2436,7 @@ function editFromHistory(dk) {
   }
 }
 
-const BACKUP_URL = "https://script.google.com/macros/s/AKfycbzTxA0h9ft36W7mUTgC12xvVJ95mQU6UcztlZaeas23W3M8Kix87r0Y1qvflc3gY5I5-w/exec";
+const BACKUP_URL = "https://script.google.com/macros/s/AKfycbwOwT4zFJxMiDe_RVv7yAKUp2uIYTHpIRezQxFt5P1vkmeMQPBw0Cfbs-_mYgFgNkLIvg/exec";
 const STRAVA_CLIENT_ID = "237148";
 const STRAVA_KEY = "wt_strava_v1";
 
@@ -2445,20 +2445,25 @@ async function backupToSheet() {
   btn.textContent = "Backing up..."; btn.disabled = true;
   const reset = () => { btn.textContent = "Backup to Sheet"; btn.disabled = false; };
   try {
-    const payload = JSON.stringify({ action: "backup", data: { logs: loadAll(), schedule: loadSchedule() } });
+    const logs = loadAll();
+    const schedule = loadSchedule();
+    // Split into chunks if needed — GET URL limit is ~7500 chars to be safe
+    const payload = encodeURIComponent(JSON.stringify({ logs, schedule }));
+    const url = BACKUP_URL + "?action=backup&data=" + payload;
+    if (url.length > 7500) {
+      // Too big for GET — use script tag trick instead
+      toast("Data too large for direct backup. Use Export CSV as a fallback.");
+      reset(); return;
+    }
     const res = await Promise.race([
-      fetch(BACKUP_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain" },
-        body: payload
-      }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 15000))
+      fetch(url, { method: "GET" }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000))
     ]);
     const data = await res.json();
-    if (data.ok) { toast("Backed up: " + data.msg); localStorage.setItem("wt_last_backup", new Date().toISOString()); updateBackupStatus(); }
+    if (data.ok) { toast("Backed up! " + data.msg); localStorage.setItem("wt_last_backup", new Date().toISOString()); updateBackupStatus(); }
     else toast("Backup failed: " + (data.msg || "error"));
   } catch(e) {
-    if (e.message === "timeout") toast("Backup timed out — try opening the app outside of Claude");
+    if (e.message === "timeout") toast("Timed out. Check your connection and try again.");
     else toast("Error: " + e.message);
   }
   reset();
