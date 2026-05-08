@@ -2622,8 +2622,7 @@ function checkStravaCallback() {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
   if (code) {
-    window.history.replaceState({}, "", window.location.pathname);
-    toast("Exchanging Strava code...", 8000);
+    // Don't clear URL yet - keep code available
     fetch("https://www.strava.com/oauth/token", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2636,20 +2635,23 @@ function checkStravaCallback() {
     })
     .then(r => r.json())
     .then(d => {
-      console.log("Strava exchange response:", JSON.stringify(d));
+      window.history.replaceState({}, "", window.location.pathname);
       if (d.refresh_token) {
         saveStravaTokens({ refresh_token: d.refresh_token, access_token: d.access_token, expires_at: d.expires_at });
         updateStravaStatus();
-        toast("Strava connected! ✓", 5000);
+        alert("Strava connected! Now hit Sync Strava Runs.");
       } else {
-        toast("Exchange failed: " + (d.message || d.error || JSON.stringify(d)), 8000);
+        alert("Strava exchange failed: " + JSON.stringify(d));
       }
     })
-    .catch(e => toast("Exchange error: " + e.message, 8000));
+    .catch(e => {
+      window.history.replaceState({}, "", window.location.pathname);
+      alert("Strava fetch error: " + e.message);
+    });
   }
   if (params.get("error")) {
     window.history.replaceState({}, "", window.location.pathname);
-    toast("Strava error: " + params.get("error"));
+    alert("Strava error: " + params.get("error"));
   }
 }
 
