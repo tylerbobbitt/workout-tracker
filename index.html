@@ -72,7 +72,7 @@ body {
 }
 
 .win-titlebar {
-  background: linear-gradient(90deg, var(--win-caption) 0%, #1084d0 100%);
+  background: var(--win-caption);
   color: var(--win-cap-text);
   font-family: var(--font-ui);
   font-size: 17px;
@@ -198,7 +198,7 @@ body {
 
 /* ── PAGE HEADER (window titlebar style) ── */
 .page-header {
-  background: linear-gradient(90deg, var(--win-caption) 0%, #1084d0 100%);
+  background: var(--win-caption);
   color: #fff;
   padding: 4px 8px;
   font-family: var(--font-ui);
@@ -711,10 +711,7 @@ textarea.actual-input:disabled { background: var(--win-face); }
 }
 .progress-bar-fill {
   height: 100%;
-  background: repeating-linear-gradient(
-    90deg, var(--accent) 0px, var(--accent) 4px,
-    var(--accent-lit) 4px, var(--accent-lit) 8px
-  );
+  background: var(--accent);
 }
 .progress-label { font-family: var(--font-mono); font-size: 11px; color: var(--win-text-dim); }
 
@@ -783,6 +780,96 @@ textarea.actual-input:disabled { background: var(--win-face); }
   color: #000;
 }
 
+
+/* ── INTERVAL TIMER ─────────────────────────────────────────────────────── */
+.it-display {
+  font-family: var(--font-ui);
+  font-size: 72px;
+  color: #000;
+  line-height: 1;
+  text-align: center;
+  margin: 8px 0 4px;
+  letter-spacing: 2px;
+  border-top: 2px solid var(--win-dk-shadow);
+  border-left: 2px solid var(--win-dk-shadow);
+  border-right: 2px solid var(--win-hilight);
+  border-bottom: 2px solid var(--win-hilight);
+  background: #fff;
+  padding: 10px 0;
+}
+.it-phase-label {
+  font-family: var(--font-ui);
+  font-size: 20px;
+  text-align: center;
+  padding: 4px;
+  letter-spacing: 1px;
+  background: var(--win-btn-face);
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  margin-bottom: 6px;
+}
+.it-phase-label.work { background: #000080; color: #fff; }
+.it-phase-label.rest { background: #008000; color: #fff; }
+.it-phase-label.done { background: #444; color: #fff; }
+.it-progress-text {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: center;
+  color: var(--win-text-dim);
+  margin-bottom: 8px;
+}
+.it-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.it-config-item label {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  display: block;
+  margin-bottom: 2px;
+}
+.it-config-input {
+  width: 100%;
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+  background: #fff;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  text-align: center;
+  padding: 4px;
+  color: #000;
+}
+.it-config-input:focus { outline: 1px dotted var(--accent); }
+.it-btn-row {
+  display: flex; gap: 6px; margin-bottom: 6px;
+}
+.it-btn {
+  flex: 1;
+  padding: 8px 6px;
+  border-top: 2px solid var(--win-hilight);
+  border-left: 2px solid var(--win-hilight);
+  border-right: 2px solid var(--win-dk-shadow);
+  border-bottom: 2px solid var(--win-dk-shadow);
+  background: var(--win-btn-face);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--win-text);
+  text-align: center;
+}
+.it-btn:active {
+  border-color: var(--win-dk-shadow) var(--win-hilight) var(--win-hilight) var(--win-dk-shadow);
+  padding: 9px 5px 7px 7px;
+}
+.it-btn.start { background: #000080; color: #fff; }
+.it-btn.stop  { background: #800000; color: #fff; }
+.it-btn.reset { background: var(--win-btn-face); }
 
 /* ── MONTH VIEW ─────────────────────────────────────────────────────────── */
 .month-card { margin-top: 8px; }
@@ -970,6 +1057,73 @@ textarea.actual-input:disabled { background: var(--win-face); }
     <div class="page-sub" id="history-sub">All logged sessions</div>
   </div>
   <div id="history-content"></div>
+</div>
+
+<!-- ── INTERVAL TIMER ─────────────────────────────────────────────────────── -->
+<div id="page-timer" class="page">
+  <div class="page-header">
+    <div class="page-title">INTERVAL TIMER</div>
+    <div class="page-sub">Work / Rest cycles</div>
+  </div>
+
+  <!-- Config card -->
+  <div class="card" style="margin-top:8px">
+    <div class="card-header"><span class="card-title">SETUP</span></div>
+    <div class="card-body">
+      <div class="it-config-grid">
+        <div class="it-config-item">
+          <label>Work (sec)</label>
+          <input id="it-work" class="it-config-input" type="number" min="1" max="600" value="40">
+        </div>
+        <div class="it-config-item">
+          <label>Rest (sec)</label>
+          <input id="it-rest" class="it-config-input" type="number" min="1" max="600" value="20">
+        </div>
+        <div class="it-config-item">
+          <label>Rounds</label>
+          <input id="it-rounds" class="it-config-input" type="number" min="1" max="99" value="8">
+        </div>
+        <div class="it-config-item">
+          <label>Delay (sec)</label>
+          <input id="it-delay" class="it-config-input" type="number" min="0" max="30" value="5">
+        </div>
+      </div>
+      <div class="it-btn-row">
+        <button id="it-start-btn" class="it-btn start" onclick="itToggle()">▶ START</button>
+        <button class="it-btn reset" onclick="itReset()">■ RESET</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Display card -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">TIMER</span></div>
+    <div class="card-body" style="padding:8px 12px 12px">
+      <div id="it-phase-label" class="it-phase-label">READY</div>
+      <div id="it-display" class="it-display">00:00</div>
+      <div id="it-progress-text" class="it-progress-text">Round — / —</div>
+      <div class="progress-wrap" style="margin-top:4px">
+        <div class="progress-bar-bg" style="flex:1">
+          <div id="it-progress-fill" class="progress-bar-fill" style="width:0%;transition:width .25s linear;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Presets -->
+  <div class="card">
+    <div class="card-header"><span class="card-title">QUICK PRESETS</span></div>
+    <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+      <button class="btn-secondary" onclick="itPreset(40,20,8,5)" style="margin:0">Tabata (40/20×8)</button>
+      <button class="btn-secondary" onclick="itPreset(30,15,10,5)" style="margin:0">HIIT (30/15×10)</button>
+      <button class="btn-secondary" onclick="itPreset(60,30,6,5)" style="margin:0">60/30×6</button>
+      <button class="btn-secondary" onclick="itPreset(90,45,5,5)" style="margin:0">90/45×5</button>
+      <button class="btn-secondary" onclick="itPreset(20,10,8,5)" style="margin:0">Tabata Classic</button>
+      <button class="btn-secondary" onclick="itPreset(45,15,12,5)" style="margin:0">45/15×12</button>
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
 </div>
 
 <!-- ── NAV ── -->
@@ -3156,6 +3310,145 @@ function swReset() {
 }
 
 
+// ── Interval Timer ────────────────────────────────────────────────────────
+let itState = 'idle'; // idle | delay | work | rest | done
+let itRound = 0, itTotalRounds = 8;
+let itWorkSec = 40, itRestSec = 20, itDelaySec = 5;
+let itRemaining = 0, itPhaseDur = 0;
+let itIntervalId = null;
+let itBeepCtx = null;
+
+function itGetBeepCtx() {
+  if (!itBeepCtx) {
+    try { itBeepCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return itBeepCtx;
+}
+
+function itBeep(freq, dur, vol) {
+  const ctx = itGetBeepCtx(); if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = 'square';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(vol || 0.3, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + dur);
+}
+
+function itFormat(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0');
+}
+
+function itSetDisplay() {
+  document.getElementById('it-display').textContent = itFormat(itRemaining);
+  const pct = itPhaseDur > 0 ? ((itPhaseDur - itRemaining) / itPhaseDur * 100) : 0;
+  document.getElementById('it-progress-fill').style.width = pct + '%';
+  const roundTxt = (itState === 'delay') ? 'Starting soon' :
+    (itState === 'done') ? 'Complete!' :
+    'Round ' + itRound + ' / ' + itTotalRounds;
+  document.getElementById('it-progress-text').textContent = roundTxt;
+
+  const lbl = document.getElementById('it-phase-label');
+  lbl.className = 'it-phase-label';
+  if (itState === 'work')  { lbl.classList.add('work'); lbl.textContent = '● WORK'; }
+  else if (itState === 'rest') { lbl.classList.add('rest'); lbl.textContent = '● REST'; }
+  else if (itState === 'done') { lbl.classList.add('done'); lbl.textContent = '✓ DONE'; }
+  else if (itState === 'delay') { lbl.textContent = '▶ GET READY'; }
+  else { lbl.textContent = 'READY'; }
+}
+
+function itTick() {
+  itRemaining--;
+  if (itRemaining <= 3 && itRemaining > 0 && itState !== 'delay') {
+    itBeep(880, 0.1, 0.2);
+  }
+  if (itRemaining <= 0) {
+    itAdvance();
+  } else {
+    itSetDisplay();
+  }
+}
+
+function itAdvance() {
+  if (itState === 'delay') {
+    itState = 'work';
+    itRound = 1;
+    itPhaseDur = itWorkSec;
+    itRemaining = itWorkSec;
+    itBeep(660, 0.2, 0.4);
+  } else if (itState === 'work') {
+    if (itRound >= itTotalRounds) {
+      itState = 'done';
+      itPhaseDur = 0; itRemaining = 0;
+      clearInterval(itIntervalId); itIntervalId = null;
+      document.getElementById('it-start-btn').textContent = '▶ START';
+      document.getElementById('it-start-btn').className = 'it-btn start';
+      itBeep(440, 0.6, 0.5);
+    } else {
+      itState = 'rest';
+      itPhaseDur = itRestSec;
+      itRemaining = itRestSec;
+      itBeep(330, 0.3, 0.4);
+    }
+  } else if (itState === 'rest') {
+    itState = 'work';
+    itRound++;
+    itPhaseDur = itWorkSec;
+    itRemaining = itWorkSec;
+    itBeep(660, 0.2, 0.4);
+  }
+  itSetDisplay();
+}
+
+function itToggle() {
+  if (itState === 'idle' || itState === 'done') {
+    itWorkSec    = parseInt(document.getElementById('it-work').value) || 40;
+    itRestSec    = parseInt(document.getElementById('it-rest').value) || 20;
+    itTotalRounds= parseInt(document.getElementById('it-rounds').value) || 8;
+    itDelaySec   = parseInt(document.getElementById('it-delay').value) || 5;
+    itState = itDelaySec > 0 ? 'delay' : 'work';
+    if (itState === 'delay') { itPhaseDur = itDelaySec; itRemaining = itDelaySec; itRound = 0; }
+    else { itPhaseDur = itWorkSec; itRemaining = itWorkSec; itRound = 1; itBeep(660, 0.2, 0.4); }
+    itIntervalId = setInterval(itTick, 1000);
+    document.getElementById('it-start-btn').textContent = '❚❚ PAUSE';
+    document.getElementById('it-start-btn').className = 'it-btn stop';
+    itSetDisplay();
+  } else if (itIntervalId) {
+    clearInterval(itIntervalId); itIntervalId = null;
+    document.getElementById('it-start-btn').textContent = '▶ RESUME';
+    document.getElementById('it-start-btn').className = 'it-btn start';
+  } else {
+    itIntervalId = setInterval(itTick, 1000);
+    document.getElementById('it-start-btn').textContent = '❚❚ PAUSE';
+    document.getElementById('it-start-btn').className = 'it-btn stop';
+  }
+}
+
+function itReset() {
+  if (itIntervalId) { clearInterval(itIntervalId); itIntervalId = null; }
+  itState = 'idle'; itRound = 0; itRemaining = 0; itPhaseDur = 0;
+  document.getElementById('it-start-btn').textContent = '▶ START';
+  document.getElementById('it-start-btn').className = 'it-btn start';
+  document.getElementById('it-display').textContent = '00:00';
+  document.getElementById('it-progress-fill').style.width = '0%';
+  document.getElementById('it-progress-text').textContent = 'Round — / —';
+  const lbl = document.getElementById('it-phase-label');
+  lbl.className = 'it-phase-label'; lbl.textContent = 'READY';
+}
+
+function itPreset(work, rest, rounds, delay) {
+  itReset();
+  document.getElementById('it-work').value = work;
+  document.getElementById('it-rest').value = rest;
+  document.getElementById('it-rounds').value = rounds;
+  document.getElementById('it-delay').value = delay;
+}
+
 seedHistory();
 autoCleanOldData();
 renderToday();
@@ -3178,6 +3471,10 @@ checkStravaCallback();
   <button class="nav-btn" id="nav-history" onclick="show('history')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
     History
+  </button>
+  <button class="nav-btn" id="nav-timer" onclick="show('timer')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><polyline points="12,9 12,13 14,15"/><path d="M9 2h6M12 2v2"/></svg>
+    Timer
   </button>
   <button class="nav-btn" id="nav-settings" onclick="show('settings')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
