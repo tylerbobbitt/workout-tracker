@@ -869,23 +869,25 @@ textarea.actual-input:disabled { background: var(--win-face); }
   <div class="card">
     <div class="card-header"><span class="card-title">Strava</span><span id="strava-status" style="font-size:12px;color:#444444">...</span></div>
     <div class="card-body">
-      <button id="btn-strava" onclick="syncStrava()" style="display:block;width:100%;padding:13px;background:#FC4C02;color:#fff;border:none;border-radius:10px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;cursor:pointer;margin-bottom:8px">Sync Strava Runs</button>
+      <button id="btn-strava-auth" onclick="connectStrava()" class="settings-btn" style="background:#FC4C02;color:#fff;font-weight:bold;text-align:center">Connect Strava</button>
+      <button id="btn-strava" onclick="syncStrava()" class="settings-btn" style="background:#FC4C02;color:#fff;font-weight:bold;text-align:center">Sync Strava Runs</button>
+      <button onclick="disconnectStrava()" class="settings-btn" style="text-align:center">Disconnect Strava</button>
       <div style="margin-top:10px">
-        <div style="font-size:11px;color:#444444;margin-bottom:4px">Strava Refresh Token</div>
+        <div style="font-size:11px;color:#444444;margin-bottom:4px">Manual fallback: Strava Refresh Token</div>
         <input id="strava-token-input" type="password" placeholder="Paste refresh token here"
           style="width:100%;box-sizing:border-box;padding:8px;font-family:'VT323',monospace;font-size:15px;border:1px solid #999;background:#fff;margin-bottom:6px"
           oninput="stravaTokenInputChanged(this.value)">
-        <div style="font-size:10px;color:#444444;line-height:1.5">Get your token at <a href="https://www.strava.com/settings/api" target="_blank" style="color:#000080">strava.com/settings/api</a> → scroll to "Your Access Token" → copy the Refresh Token.</div>
+        <div style="font-size:10px;color:#444444;line-height:1.5">Preferred: use Connect Strava, approve <b>activity:read_all</b>, then hit Sync. Manual token paste is kept as a fallback.</div>
       </div>
-      <div style="font-size:11px;color:#444444;margin-top:8px;line-height:1.5">Pulls your last 10 Strava runs/walks. Won't overwrite manually logged workouts.</div>
+      <div style="font-size:11px;color:#444444;margin-top:8px;line-height:1.5">Pulls recent Strava runs/walks/hikes. Won't overwrite manually logged lifting workouts.</div>
     </div>
   </div>
   <div class="card">
     <div class="card-header"><span class="card-title">Data</span></div>
     <div class="card-body">
-      <button onclick="exportCSV()" style="display:block;width:100%;padding:11px;background:none;color:#444444;class="settings-btn">&#128196; Export CSV</button>
-      <button onclick="importCSV()" style="display:block;width:100%;padding:11px;background:none;color:#444444;class="settings-btn">&#128229; Import CSV</button>
-      <button onclick="clearAllData()" style="display:block;width:100%;padding:11px;background:none;class="settings-btn danger">&#128465;&#65039; Clear All Local Data</button>
+      <button onclick="exportCSV()" class="settings-btn">&#128196; Export CSV</button>
+      <button onclick="importCSV()" class="settings-btn">&#128229; Import CSV</button>
+      <button onclick="clearAllData()" class="settings-btn danger">&#128465;&#65039; Clear All Local Data</button>
     </div>
   </div>
   <div style="height:20px"></div>
@@ -2525,23 +2527,76 @@ function updateBackupStatus() {
 
 function getStravaTokens() { try { return JSON.parse(localStorage.getItem(STRAVA_KEY) || "null"); } catch(e) { return null; } }
 function saveStravaTokens(d) { localStorage.setItem(STRAVA_KEY, JSON.stringify(d)); }
+function disconnectStrava() {
+  localStorage.removeItem(STRAVA_KEY);
+  updateStravaStatus();
+  toast("Strava disconnected");
+}
+
+function currentRedirectUri() {
+  return window.location.origin + window.location.pathname;
+}
+
+function connectStrava() {
+  const redirect = currentRedirectUri();
+  const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem("wt_strava_oauth_state", state);
+  const params = new URLSearchParams({
+    client_id: STRAVA_CLIENT_ID,
+    redirect_uri: redirect,
+    response_type: "code",
+    approval_prompt: "auto",
+    scope: "read,activity:read_all",
+    state: state
+  });
+  window.location.href = "https://www.strava.com/oauth/authorize?" + params.toString();
+}
 
 function stravaTokenInputChanged(val) {
   const v = val.trim();
   if (!v) return;
   const existing = getStravaTokens() || {};
-  saveStravaTokens(Object.assign({}, existing, { refresh_token: v, access_token: null, expires_at: 0 }));
+  saveStravaTokens(Object.assign({}, existing, {
+    refresh_token: v,
+    access_token: null,
+    expires_at: 0,
+    scope: existing.scope || "manual"
+  }));
   updateStravaStatus();
   toast("Refresh token saved ✓");
 }
 
+async function exchangeStravaCode(code, scope) {
+  const res = await fetch("https://www.strava.com/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id:     STRAVA_CLIENT_ID,
+      client_secret: STRAVA_CLIENT_SECRET,
+      code:          code,
+      grant_type:    "authorization_code"
+    })
+  });
+  const d = await res.json();
+  if (d.refresh_token) {
+    saveStravaTokens({
+      refresh_token: d.refresh_token,
+      access_token: d.access_token,
+      expires_at: d.expires_at,
+      scope: scope || d.scope || ""
+    });
+    updateStravaStatus();
+    return true;
+  }
+  alert("Strava exchange failed: " + JSON.stringify(d));
+  return false;
+}
+
 async function getValidStravaToken() {
   const tokens = getStravaTokens(); if (!tokens || !tokens.refresh_token) return null;
-  // Use cached access token if still valid
   if (tokens.access_token && tokens.expires_at && Date.now() / 1000 < tokens.expires_at - 300) {
     return tokens.access_token;
   }
-  // Refresh directly against Strava — no backend needed
   try {
     const res = await fetch("https://www.strava.com/oauth/token", {
       method: "POST",
@@ -2570,13 +2625,13 @@ async function getValidStravaToken() {
 
 async function syncStrava() {
   const tokens = getStravaTokens();
-  if (!tokens || !tokens.refresh_token) { toast("Paste your Strava refresh token in Settings first"); show("settings"); return; }
+  if (!tokens || !tokens.refresh_token) { toast("Connect Strava first"); show("settings"); return; }
   const btn = document.getElementById("btn-strava");
   btn.textContent = "Syncing..."; btn.disabled = true;
   try {
     const token = await getValidStravaToken();
-    if (!token) { toast("Token refresh failed — check your refresh token in Settings"); btn.textContent = "Sync Strava Runs"; btn.disabled = false; return; }
-    const res = await fetch("https://www.strava.com/api/v3/athlete/activities?per_page=10", { headers: { "Authorization": "Bearer " + token } });
+    if (!token) { toast("Token refresh failed — reconnect Strava"); btn.textContent = "Sync Strava Runs"; btn.disabled = false; return; }
+    const res = await fetch("https://www.strava.com/api/v3/athlete/activities?per_page=30", { headers: { "Authorization": "Bearer " + token } });
     const acts = await res.json();
     if (!Array.isArray(acts)) {
       const msg = acts && acts.message ? acts.message : JSON.stringify(acts);
@@ -2588,22 +2643,29 @@ async function syncStrava() {
       if (!["Run","Walk","Hike","VirtualRun"].includes(act.type)) return;
       const d = new Date(act.start_date_local);
       const dk = d.toISOString().slice(0,10);
+      if (logs[dk] && logs[dk].stravaId === act.id) return;
       if (logs[dk] && logs[dk].workoutType && logs[dk].workoutType !== "Run") return;
       const miles = (act.distance / 1609.34).toFixed(2);
       const timeMin = (act.moving_time / 60).toFixed(1);
       const ex = logs[dk];
+      const pace = calcPace(miles, timeMin);
+      const stravaNote = "Strava: " + miles + " mi @ " + pace + "/mi (" + timeMin + " min)";
       logs[dk] = Object.assign({}, ex || {}, {
         date: dk, workoutType: "Run", workoutName: act.name || "Strava Run",
+        isCustom: true, fromHistory: true,
         isRun: true, miles: miles, time: timeMin,
         exercises: (ex && ex.exercises) || Array(7).fill(null).map(function() { return {name:"",plan:"",actual:"",locked:false}; }),
-        warmup: (ex && ex.warmup) || "", jumps: (ex && ex.jumps) || "", abs: (ex && ex.abs) || "",
+        warmup: (ex && ex.warmup) || "", warmupActual: (ex && ex.warmupActual) || "",
+        jumps: (ex && ex.jumps) || "", jumpsActual: (ex && ex.jumpsActual) || "",
+        abs: (ex && ex.abs) || "", absActual: (ex && ex.absActual) || "",
         sleep: (ex && ex.sleep) || "", readiness: (ex && ex.readiness) || "",
         soreness: (ex && ex.soreness) || "", knee: (ex && ex.knee) || "",
         hamstring: (ex && ex.hamstring) || "", rpe: (ex && ex.rpe) || "",
-        notes: (ex && ex.notes) || "", stravaId: act.id
+        notes: (ex && ex.notes) ? ex.notes : stravaNote,
+        stravaId: act.id
       }); synced++;
     });
-    saveAll(logs); toast("Synced " + synced + " Strava run(s)"); renderToday(); updateStravaStatus();
+    saveAll(logs); toast("Synced " + synced + " Strava run(s)"); renderToday(); renderHistory(); updateStravaStatus();
   } catch(e) { toast("Error: " + e.message); }
   btn.textContent = "Sync Strava Runs"; btn.disabled = false;
 }
@@ -2612,47 +2674,82 @@ function updateStravaStatus() {
   const el = document.getElementById("strava-status"); if (!el) return;
   const t = getStravaTokens();
   const hasToken = t && t.refresh_token;
-  el.textContent = hasToken ? "Connected" : "Not connected";
-  el.style.color = hasToken ? "#000080" : "#444444";
+  const scope = (t && t.scope) ? String(t.scope) : "";
+  const hasActivityScope = scope === "manual" || scope.split(",").includes("activity:read_all") || scope.split(",").includes("read_all");
+  el.textContent = hasToken ? (hasActivityScope ? "Connected" : "Connected — missing activity:read_all") : "Not connected";
+  el.style.color = hasToken && hasActivityScope ? "#000080" : "#444444";
   const inp = document.getElementById("strava-token-input");
   if (inp && hasToken && !inp.value) inp.value = t.refresh_token;
+  const syncBtn = document.getElementById("btn-strava");
+  if (syncBtn) syncBtn.disabled = !hasToken;
 }
 
 function checkStravaCallback() {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
+  const scope = params.get("scope") || "";
+  const state = params.get("state") || "";
   if (code) {
-    // Don't clear URL yet - keep code available
-    fetch("https://www.strava.com/oauth/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        client_id:     STRAVA_CLIENT_ID,
-        client_secret: STRAVA_CLIENT_SECRET,
-        code:          code,
-        grant_type:    "authorization_code"
-      })
-    })
-    .then(r => r.json())
-    .then(d => {
-      window.history.replaceState({}, "", window.location.pathname);
-      if (d.refresh_token) {
-        saveStravaTokens({ refresh_token: d.refresh_token, access_token: d.access_token, expires_at: d.expires_at });
-        updateStravaStatus();
-        alert("Strava connected! Now hit Sync Strava Runs.");
-      } else {
-        alert("Strava exchange failed: " + JSON.stringify(d));
-      }
-    })
-    .catch(e => {
-      window.history.replaceState({}, "", window.location.pathname);
-      alert("Strava fetch error: " + e.message);
-    });
+    const expectedState = localStorage.getItem("wt_strava_oauth_state") || "";
+    window.history.replaceState({}, "", window.location.pathname);
+    if (expectedState && state && state !== expectedState) {
+      alert("Strava state mismatch. Reconnect Strava.");
+      return;
+    }
+    localStorage.removeItem("wt_strava_oauth_state");
+    if (!(scope.split(",").includes("activity:read_all") || scope.split(",").includes("read_all"))) {
+      alert("Strava connected without activity:read_all. Reconnect and approve activity access, or sync may not see private activities.");
+    }
+    exchangeStravaCode(code, scope).then(ok => {
+      if (ok) alert("Strava connected. Now hit Sync Strava Runs.");
+    }).catch(e => alert("Strava fetch error: " + e.message));
   }
   if (params.get("error")) {
     window.history.replaceState({}, "", window.location.pathname);
     alert("Strava error: " + params.get("error"));
   }
+}
+
+function csvEscape(v) {
+  return '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+}
+
+function parseCSV(text) {
+  const rows = []; let row = []; let cur = ""; let inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"' && inQ && text[i+1] === '"') { cur += '"'; i++; }
+    else if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { row.push(cur); cur = ""; }
+    else if ((ch === '\n' || ch === '\r') && !inQ) {
+      if (ch === '\r' && text[i+1] === '\n') i++;
+      row.push(cur); cur = "";
+      if (row.some(v => String(v).trim() !== "")) rows.push(row);
+      row = [];
+    } else { cur += ch; }
+  }
+  row.push(cur);
+  if (row.some(v => String(v).trim() !== "")) rows.push(row);
+  return rows;
+}
+
+function blankExercises() {
+  return Array(7).fill(null).map(() => ({name:"",plan:"",actual:"",locked:false}));
+}
+
+function normalizeExercises(exercises) {
+  const arr = Array.isArray(exercises) ? exercises : [];
+  const out = blankExercises();
+  for (let i = 0; i < Math.min(arr.length, 7); i++) {
+    const e = arr[i] || {};
+    out[i] = {
+      name: e.name || "",
+      plan: e.plan || "",
+      actual: e.actual || "",
+      locked: !!e.locked
+    };
+  }
+  return out;
 }
 
 function exportCSV() {
@@ -2664,21 +2761,38 @@ function exportCSV() {
   if (start === null) return;
   const end = prompt("Export TO date (YYYY-MM-DD):", endStr);
   if (end === null) return;
-  // Headers exactly match what importCSV expects
-  const rows = [["Date","WorkoutType","WorkoutName","IsRun","Miles","Time","RPE","Notes"]];
+
+  const headers = [
+    "Date","WorkoutType","WorkoutName","IsRun","Miles","Time","RPE","Notes",
+    "Warmup","WarmupActual","Jumps","JumpsActual","Abs","AbsActual",
+    "Sleep","Readiness","Soreness","Knee","Hamstring","StravaId","ExercisesJSON"
+  ];
+  for (let i = 1; i <= 7; i++) {
+    headers.push("Exercise" + i + "Name", "Exercise" + i + "Plan", "Exercise" + i + "Actual", "Exercise" + i + "Locked");
+  }
+
+  const rows = [headers];
   Object.entries(all).sort().forEach(function([dk, s]) {
     if (!s) return;
     if (dk < start || dk > end) return;
-    rows.push([dk, s.workoutType||"", s.workoutName||"", s.isRun ? "1" : "0", s.miles||"", s.time||"", s.rpe||"", s.notes||""]);
+    const exercises = normalizeExercises(s.exercises);
+    const row = [
+      dk, s.workoutType||"", s.workoutName||"", s.isRun ? "1" : "0", s.miles||"", s.time||"", s.rpe||"", s.notes||"",
+      s.warmup||"", s.warmupActual||"", s.jumps||"", s.jumpsActual||"", s.abs||"", s.absActual||"",
+      s.sleep||"", s.readiness||"", s.soreness||"", s.knee||"", s.hamstring||"", s.stravaId||"",
+      JSON.stringify(exercises)
+    ];
+    exercises.forEach(function(e) { row.push(e.name||"", e.plan||"", e.actual||"", e.locked ? "1" : "0"); });
+    rows.push(row);
   });
   if (rows.length === 1) { toast("No sessions found in that date range"); return; }
-  const csv = rows.map(function(r) { return r.map(function(v) { return '"' + String(v).replace(/"/g, '""')+'"'; }).join(","); }).join("\n");
-  const blob = new Blob([csv], {type:"text/csv"});
+  const csv = rows.map(r => r.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url;
-  a.download = "workouts_" + start + "_to_" + end + ".csv";
+  a.download = "workouts_full_" + start + "_to_" + end + ".csv";
   a.click(); URL.revokeObjectURL(url);
-  toast("Exported " + (rows.length - 1) + " sessions ✓");
+  toast("Exported " + (rows.length - 1) + " full session(s) ✓");
 }
 
 function importCSV() {
@@ -2688,61 +2802,60 @@ function importCSV() {
     const file = e.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = function(ev) {
-      const lines = ev.target.result.split("\n").filter(l => l.trim());
-      if (lines.length < 2) { toast("CSV appears empty"); return; }
-      // Parse a CSV row handling quoted fields with embedded commas/newlines
-      function parseRow(line) {
-        const cols = []; let cur = ""; let inQ = false;
-        for (let c = 0; c < line.length; c++) {
-          const ch = line[c];
-          if (ch === '"' && !inQ) { inQ = true; }
-          else if (ch === '"' && inQ && line[c+1] === '"'){ cur += '"'; c++; }
-          else if (ch === '"' && inQ) { inQ = false; }
-          else if (ch === "," && !inQ) { cols.push(cur); cur = ""; }
-          else { cur += ch; }
-        }
-        cols.push(cur);
-        return cols.map(v => v.trim());
-      }
-      const header = parseRow(lines[0]).map(h => h.toLowerCase());
-      const idx = (name) => header.indexOf(name);
+      const rows = parseCSV(ev.target.result);
+      if (rows.length < 2) { toast("CSV appears empty"); return; }
+      const header = rows[0].map(h => String(h).trim().toLowerCase());
+      const idx = (name) => header.indexOf(name.toLowerCase());
       const dateIdx  = idx("date");
-      const typeIdx  = idx("workouttype");
-      const nameIdx  = idx("workoutname");
-      const isRunIdx = idx("isrun");
-      const milesIdx = idx("miles");
-      const timeIdx  = idx("time");
-      const rpeIdx   = idx("rpe");
-      const notesIdx = idx("notes");
       if (dateIdx === -1) { toast("CSV must have a Date column"); return; }
       const all = loadAll(); let added = 0; let skipped = 0;
-      for (let i = 1; i < lines.length; i++) {
-        const cols = parseRow(lines[i]);
+      for (let r = 1; r < rows.length; r++) {
+        const cols = rows[r];
+        const get = (name) => { const i = idx(name); return i >= 0 ? (cols[i] || "") : ""; };
         const dk = cols[dateIdx] || "";
         if (!dk.match(/^\d{4}-\d{2}-\d{2}$/)) { skipped++; continue; }
-        if (all[dk]) { skipped++; continue; } // already exists — never overwrite
-        const miles = milesIdx >= 0 ? cols[milesIdx] || "" : "";
-        const isRunVal = isRunIdx >= 0 ? cols[isRunIdx] : "";
+        if (all[dk]) { skipped++; continue; }
+
+        let exercises = blankExercises();
+        const exJson = get("ExercisesJSON");
+        if (exJson) {
+          try { exercises = normalizeExercises(JSON.parse(exJson)); }
+          catch(e) { console.log("Could not parse ExercisesJSON for", dk, e); }
+        }
+        for (let i = 1; i <= 7; i++) {
+          const nm = get("Exercise" + i + "Name");
+          const pl = get("Exercise" + i + "Plan");
+          const ac = get("Exercise" + i + "Actual");
+          const lk = get("Exercise" + i + "Locked");
+          if (nm || pl || ac || lk) {
+            exercises[i-1] = { name: nm, plan: pl, actual: ac, locked: lk === "1" || lk.toLowerCase() === "true" };
+          }
+        }
+
+        const miles = get("Miles");
+        const isRunVal = get("IsRun");
         const isRun = isRunVal === "1" || isRunVal.toLowerCase() === "true" || parseFloat(miles) > 0;
         all[dk] = {
           date: dk,
-          workoutType: typeIdx >= 0 ? cols[typeIdx] || "Open" : "Open",
-          workoutName: nameIdx >= 0 ? cols[nameIdx] || "Imported" : "Imported",
+          workoutType: get("WorkoutType") || "Open",
+          workoutName: get("WorkoutName") || "Imported",
           isCustom: true, fromHistory: true,
-          warmup: "", warmupActual: "", jumps: "", jumpsActual: "",
-          exercises: Array(7).fill(null).map(() => ({name:"",plan:"",actual:"",locked:false})),
-          abs: "", absActual: "",
+          warmup: get("Warmup"), warmupActual: get("WarmupActual"),
+          jumps: get("Jumps"), jumpsActual: get("JumpsActual"),
+          exercises: exercises,
+          abs: get("Abs"), absActual: get("AbsActual"),
           isRun: isRun,
           miles: miles,
-          time: timeIdx  >= 0 ? cols[timeIdx]  || "" : "",
-          rpe:  rpeIdx   >= 0 ? cols[rpeIdx]   || "" : "",
-          notes: notesIdx >= 0 ? cols[notesIdx] || "" : "",
-          sleep: "", readiness: "", soreness: "", knee: "", hamstring: ""
+          time: get("Time"),
+          rpe: get("RPE"),
+          notes: get("Notes"),
+          sleep: get("Sleep"), readiness: get("Readiness"), soreness: get("Soreness"),
+          knee: get("Knee"), hamstring: get("Hamstring"), stravaId: get("StravaId")
         };
         added++;
       }
       saveAll(all);
-      renderHistory();
+      renderToday(); renderHistory();
       toast("Imported " + added + " session" + (added !== 1 ? "s" : "") + (skipped ? " (" + skipped + " skipped — already exist)" : "") + " ✓");
     };
     reader.readAsText(file);
