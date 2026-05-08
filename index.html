@@ -802,6 +802,20 @@ textarea.actual-input:disabled { background: var(--win-face); }
     <button class="today-btn" onclick="jumpToday()">TODAY</button>
   </div>
   <div id="today-content"></div>
+
+  <!-- Stopwatch -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header"><span class="card-title">STOPWATCH</span></div>
+    <div class="card-body" style="text-align:center;padding:12px 16px;">
+      <div id="sw-display" style="font-family:'VT323',monospace;font-size:64px;color:#000;line-height:1;margin:4px 0 12px;letter-spacing:2px;">00:00.0</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px;">
+        <button id="sw-start-btn" onclick="swToggle()" style="padding:10px 24px;font-family:'VT323',monospace;font-size:20px;background:#000080;color:#fff;border:none;cursor:pointer;min-width:100px;">START</button>
+        <button onclick="swLap()" style="padding:10px 16px;font-family:'VT323',monospace;font-size:20px;background:#D4D0C8;color:#000;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid #808080;border-bottom:2px solid #808080;cursor:pointer;">LAP</button>
+        <button onclick="swReset()" style="padding:10px 16px;font-family:'VT323',monospace;font-size:20px;background:#D4D0C8;color:#000;border-top:2px solid #fff;border-left:2px solid #fff;border-right:2px solid #808080;border-bottom:2px solid #808080;cursor:pointer;">RESET</button>
+      </div>
+      <div id="sw-laps" style="text-align:left;max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ── LOG ───────────────────────────────────────────────────────────────── -->
@@ -864,6 +878,7 @@ textarea.actual-input:disabled { background: var(--win-face); }
     <div class="card-header"><span class="card-title">Data</span></div>
     <div class="card-body">
       <button onclick="exportCSV()" style="display:block;width:100%;padding:11px;background:none;color:#444444;class="settings-btn">&#128196; Export CSV</button>
+      <button onclick="importCSV()" style="display:block;width:100%;padding:11px;background:none;color:#444444;class="settings-btn">&#128229; Import CSV</button>
       <button onclick="clearAllData()" style="display:block;width:100%;padding:11px;background:none;class="settings-btn danger">&#128465;&#65039; Clear All Local Data</button>
     </div>
   </div>
@@ -1792,6 +1807,12 @@ function renderToday() {
     html += `<div class="card"><div class="card-body">
       <div style="font-size:11px;color:#444444;margin-bottom:8px">Choose ${type} workout</div>
       <div style="display:flex;flex-direction:column;gap:6px">`;
+    // Custom freestyle option at the top
+    html += `<button onclick="loadWorkout('${type}','Custom ${type}')"
+      style="padding:5px 10px;border-top:2px solid #000080;border-left:2px solid #000080;border-right:2px solid #000080;border-bottom:2px solid #000080;background:#e8e8f4;color:#000080;text-align:left;cursor:pointer;font-family:'VT323',monospace;font-size:15px;display:block;width:100%;margin-bottom:3px">
+      <div style="font-weight:600;font-size:13px">&#9997; Custom ${type}</div>
+      <div style="font-size:11px;color:#444444;margin-top:2px">Freestyle — blank log, shows as ${type} in history</div>
+    </button>`;
     list.forEach(w => {
       const wname = w.name;
       html += `<button onclick="loadWorkout('${type}','${wname.replace(/'/g,"\\'")}')"
@@ -1846,17 +1867,18 @@ function loadWorkout(type, name) {
         exercises.push(null);
       }
     });
-  } else if (type === 'Custom') {
+  } else if (type === 'Custom' || name === 'Custom ' + type) {
     for (let i = 0; i < 7; i++) exercises.push({ name: '', plan: '', actual: '', locked: false });
   }
 
   const isRun = (type === 'Intervals' || type === 'Sprint' || type === 'Run' || type === 'Basketball');
+  const isCustomFreeStyle = (type === 'Custom' || name === 'Custom ' + type);
 
   activeSession = {
     date: dateKey(currentDay),
     workoutType: type,
     workoutName: name,
-    isCustom: type === 'Custom',
+    isCustom: isCustomFreeStyle,
     warmup: workout ? workout.warmup : '',
     jumps: workout ? (workout.jumps || '') : '',
     exercises: exercises.filter(e => e !== null),
@@ -2579,17 +2601,109 @@ function checkStravaCallback() {
 
 function exportCSV() {
   const all = loadAll();
-  const rows = [["Date","WorkoutType","WorkoutName","Miles","Time","RPE","Notes"]];
+  const startDefault = new Date(); startDefault.setMonth(startDefault.getMonth() - 3);
+  const startStr = startDefault.toISOString().slice(0,10);
+  const endStr = new Date().toISOString().slice(0,10);
+  const start = prompt("Export FROM date (YYYY-MM-DD):", startStr);
+  if (start === null) return;
+  const end = prompt("Export TO date (YYYY-MM-DD):", endStr);
+  if (end === null) return;
+  // Headers exactly match what importCSV expects
+  const rows = [["Date","WorkoutType","WorkoutName","IsRun","Miles","Time","RPE","Notes"]];
   Object.entries(all).sort().forEach(function([dk, s]) {
     if (!s) return;
-    rows.push([dk, s.workoutType||"", s.workoutName||"", s.miles||"", s.time||"", s.rpe||"", s.notes||""]);
+    if (dk < start || dk > end) return;
+    rows.push([dk, s.workoutType||"", s.workoutName||"", s.isRun ? "1" : "0", s.miles||"", s.time||"", s.rpe||"", s.notes||""]);
   });
+  if (rows.length === 1) { toast("No sessions found in that date range"); return; }
   const csv = rows.map(function(r) { return r.map(function(v) { return '"' + String(v).replace(/"/g, '""')+'"'; }).join(","); }).join("\n");
   const blob = new Blob([csv], {type:"text/csv"});
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a"); a.href = url;
-  a.download = "workouts_" + new Date().toISOString().slice(0,10) + ".csv";
-  a.click(); URL.revokeObjectURL(url); toast("CSV exported");
+  a.download = "workouts_" + start + "_to_" + end + ".csv";
+  a.click(); URL.revokeObjectURL(url);
+  toast("Exported " + (rows.length - 1) + " sessions ✓");
+}
+
+function importCSV() {
+  const input = document.createElement("input");
+  input.type = "file"; input.accept = ".csv";
+  input.onchange = function(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const lines = ev.target.result.split("\n").filter(l => l.trim());
+      if (lines.length < 2) { toast("CSV appears empty"); return; }
+      // Parse a CSV row handling quoted fields with embedded commas/newlines
+      function parseRow(line) {
+        const cols = []; let cur = ""; let inQ = false;
+        for (let c = 0; c < line.length; c++) {
+          const ch = line[c];
+          if (ch === '"' && !inQ) { inQ = true; }
+          else if (ch === '"' && inQ && line[c+1] === '"'){ cur += '"'; c++; }
+          else if (ch === '"' && inQ) { inQ = false; }
+          else if (ch === "," && !inQ) { cols.push(cur); cur = ""; }
+          else { cur += ch; }
+        }
+        cols.push(cur);
+        return cols.map(v => v.trim());
+      }
+      const header = parseRow(lines[0]).map(h => h.toLowerCase());
+      const idx = (name) => header.indexOf(name);
+      const dateIdx  = idx("date");
+      const typeIdx  = idx("workouttype");
+      const nameIdx  = idx("workoutname");
+      const isRunIdx = idx("isrun");
+      const milesIdx = idx("miles");
+      const timeIdx  = idx("time");
+      const rpeIdx   = idx("rpe");
+      const notesIdx = idx("notes");
+      if (dateIdx === -1) { toast("CSV must have a Date column"); return; }
+      const all = loadAll(); let added = 0; let skipped = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseRow(lines[i]);
+        const dk = cols[dateIdx] || "";
+        if (!dk.match(/^\d{4}-\d{2}-\d{2}$/)) { skipped++; continue; }
+        if (all[dk]) { skipped++; continue; } // already exists — never overwrite
+        const miles = milesIdx >= 0 ? cols[milesIdx] || "" : "";
+        const isRunVal = isRunIdx >= 0 ? cols[isRunIdx] : "";
+        const isRun = isRunVal === "1" || isRunVal.toLowerCase() === "true" || parseFloat(miles) > 0;
+        all[dk] = {
+          date: dk,
+          workoutType: typeIdx >= 0 ? cols[typeIdx] || "Open" : "Open",
+          workoutName: nameIdx >= 0 ? cols[nameIdx] || "Imported" : "Imported",
+          isCustom: true, fromHistory: true,
+          warmup: "", warmupActual: "", jumps: "", jumpsActual: "",
+          exercises: Array(7).fill(null).map(() => ({name:"",plan:"",actual:"",locked:false})),
+          abs: "", absActual: "",
+          isRun: isRun,
+          miles: miles,
+          time: timeIdx  >= 0 ? cols[timeIdx]  || "" : "",
+          rpe:  rpeIdx   >= 0 ? cols[rpeIdx]   || "" : "",
+          notes: notesIdx >= 0 ? cols[notesIdx] || "" : "",
+          sleep: "", readiness: "", soreness: "", knee: "", hamstring: ""
+        };
+        added++;
+      }
+      saveAll(all);
+      renderHistory();
+      toast("Imported " + added + " session" + (added !== 1 ? "s" : "") + (skipped ? " (" + skipped + " skipped — already exist)" : "") + " ✓");
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function autoCleanOldData() {
+  const all = loadAll();
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 2);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  let removed = 0;
+  Object.keys(all).forEach(dk => {
+    if (dk < cutoffStr) { delete all[dk]; removed++; }
+  });
+  if (removed > 0) { saveAll(all); }
 }
 
 function clearAllData() {
@@ -2601,7 +2715,61 @@ function clearAllData() {
 
 function renderSettings() { updateBackupStatus(); updateStravaStatus(); }
 
+// ── Stopwatch ─────────────────────────────────────────────────────────────
+let swRunning = false, swStartTime = 0, swElapsed = 0, swLapCount = 0, swRafId = null;
+
+function swFormat(ms) {
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  const t = Math.floor((ms % 1000) / 100);
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + t;
+}
+
+function swTick() {
+  const now = performance.now();
+  const total = swElapsed + (now - swStartTime);
+  document.getElementById('sw-display').textContent = swFormat(total);
+  swRafId = requestAnimationFrame(swTick);
+}
+
+function swToggle() {
+  const btn = document.getElementById('sw-start-btn');
+  if (!swRunning) {
+    swStartTime = performance.now();
+    swRunning = true;
+    btn.textContent = 'STOP';
+    btn.style.background = '#800000';
+    swRafId = requestAnimationFrame(swTick);
+  } else {
+    swElapsed += performance.now() - swStartTime;
+    swRunning = false;
+    cancelAnimationFrame(swRafId);
+    btn.textContent = 'START';
+    btn.style.background = '#000080';
+  }
+}
+
+function swLap() {
+  const total = swRunning ? swElapsed + (performance.now() - swStartTime) : swElapsed;
+  if (total === 0) return;
+  swLapCount++;
+  const laps = document.getElementById('sw-laps');
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid #eee;font-family:VT323,monospace;font-size:20px;';
+  row.innerHTML = '<span style="color:#888">Lap ' + swLapCount + '</span><span>' + swFormat(total) + '</span>';
+  laps.insertBefore(row, laps.firstChild);
+}
+
+function swReset() {
+  if (swRunning) swToggle();
+  swElapsed = 0; swLapCount = 0;
+  document.getElementById('sw-display').textContent = '00:00.0';
+  document.getElementById('sw-laps').innerHTML = '';
+}
+
+
 seedHistory();
+autoCleanOldData();
 renderToday();
 checkStravaCallback();
 </script>
