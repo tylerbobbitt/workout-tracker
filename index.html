@@ -899,6 +899,308 @@ textarea.actual-input:disabled { background: var(--win-face); }
   background: transparent;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTHENTIC WINDOWS 98 RETRO OVERRIDE
+   Paste at bottom of <style>, before </style>
+   Keeps Lydia-linked logs blue-highlighted and prioritizes readability.
+═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --win-bg:        #008080;   /* authentic Win98 desktop teal */
+  --win-face:      #c0c0c0;
+  --win-hilight:   #ffffff;
+  --win-shadow:    #808080;
+  --win-dk-shadow: #000000;
+  --win-text:      #000000;
+  --win-text-dim:  #333333;
+  --win-caption:   #000080;
+  --win-cap-text:  #ffffff;
+  --win-btn-face:  #c0c0c0;
+  --win-btn-text:  #000000;
+  --accent:        #000080;
+  --accent-lit:    #000080;
+  --danger:        #800000;
+
+  /* Lydia stays visibly blue */
+  --lyd-color:     #0000ff;
+  --lyd-cap:       #000080;
+
+  --font-ui: Tahoma, "MS Sans Serif", Geneva, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+}
+
+/* Global readability */
+body {
+  background: var(--win-bg);
+  background-image: none;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--win-text);
+  letter-spacing: 0;
+}
+
+/* Remove modern gradients / ombre */
+.page-header,
+.win-titlebar {
+  background: var(--win-caption) !important;
+  color: var(--win-cap-text) !important;
+  border-bottom: 2px solid var(--win-dk-shadow);
+  font-family: var(--font-ui);
+  font-weight: bold;
+  letter-spacing: 0;
+}
+
+/* Classic gray panels */
+.card,
+.week-day,
+.history-entry,
+.exercise-block,
+.win-window,
+.nav,
+.date-nav,
+.win-client,
+.win-menubar {
+  background: var(--win-face) !important;
+  color: var(--win-text) !important;
+  border-top: 2px solid var(--win-hilight) !important;
+  border-left: 2px solid var(--win-hilight) !important;
+  border-right: 2px solid var(--win-dk-shadow) !important;
+  border-bottom: 2px solid var(--win-dk-shadow) !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Inset content areas */
+.card-body,
+.week-day-body,
+.history-body,
+.plan-field,
+textarea,
+input,
+select,
+.notes-input,
+.actual-input,
+.score-input,
+.run-field {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border-top: 2px solid var(--win-dk-shadow) !important;
+  border-left: 2px solid var(--win-dk-shadow) !important;
+  border-right: 2px solid var(--win-hilight) !important;
+  border-bottom: 2px solid var(--win-hilight) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-family: var(--font-mono);
+}
+
+/* Headers inside cards */
+.card-header,
+.ex-header {
+  background: var(--win-face) !important;
+  color: var(--win-text) !important;
+  border-bottom: 1px solid var(--win-shadow) !important;
+  font-weight: bold;
+}
+
+/* Buttons: raised Win98 */
+button,
+.btn-primary,
+.btn-secondary,
+.settings-btn,
+.nav-btn,
+.type-tab,
+.workout-chip,
+.today-btn,
+.date-nav-btn,
+.apply-day-btn,
+.lock-btn,
+.win-btn-sm {
+  background: var(--win-btn-face) !important;
+  color: var(--win-btn-text) !important;
+  border-top: 2px solid var(--win-hilight) !important;
+  border-left: 2px solid var(--win-hilight) !important;
+  border-right: 2px solid var(--win-dk-shadow) !important;
+  border-bottom: 2px solid var(--win-dk-shadow) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-family: var(--font-ui) !important;
+  font-weight: normal;
+}
+
+/* Pressed buttons */
+button:active,
+.btn-primary:active,
+.btn-secondary:active,
+.settings-btn:active,
+.nav-btn:active,
+.type-tab:active,
+.workout-chip:active,
+.today-btn:active,
+.date-nav-btn:active,
+.apply-day-btn:active,
+.lock-btn:active {
+  border-top: 2px solid var(--win-dk-shadow) !important;
+  border-left: 2px solid var(--win-dk-shadow) !important;
+  border-right: 2px solid var(--win-hilight) !important;
+  border-bottom: 2px solid var(--win-hilight) !important;
+}
+
+/* Active nav / selected chips */
+.nav-btn.active,
+.workout-chip.selected,
+.type-tab.active-Upper,
+.type-tab.active-Lower,
+.type-tab.active-Intervals,
+.type-tab.active-Run,
+.type-tab.active-Sprint,
+.type-tab.active-Basketball,
+.type-tab.active-Open {
+  background: #dfdfdf !important;
+  color: #000000 !important;
+  border-top: 2px solid var(--win-dk-shadow) !important;
+  border-left: 2px solid var(--win-dk-shadow) !important;
+  border-right: 2px solid var(--win-hilight) !important;
+  border-bottom: 2px solid var(--win-hilight) !important;
+}
+
+/* Remove modern patterned active overlay */
+.nav-btn.active::after {
+  display: none !important;
+}
+
+/* Badges: readable but still classic */
+.wtype-badge {
+  border: 1px solid #000000 !important;
+  font-weight: bold;
+}
+
+.wtype-Upper      { background: #000080 !important; color: #ffffff !important; }
+.wtype-Lower      { background: #008000 !important; color: #ffffff !important; }
+.wtype-Intervals  { background: #800000 !important; color: #ffffff !important; }
+.wtype-Run        { background: #008080 !important; color: #ffffff !important; }
+.wtype-Sprint     { background: #800080 !important; color: #ffffff !important; }
+.wtype-Basketball { background: #804000 !important; color: #ffffff !important; }
+.wtype-Open       { background: #ffffff !important; color: #000000 !important; }
+
+/* Month view readability */
+.month-cell {
+  background: #c0c0c0 !important;
+  color: #000000 !important;
+  border-top: 2px solid var(--win-hilight) !important;
+  border-left: 2px solid var(--win-hilight) !important;
+  border-right: 2px solid var(--win-dk-shadow) !important;
+  border-bottom: 2px solid var(--win-dk-shadow) !important;
+  border-radius: 0 !important;
+}
+
+.month-cell.has-log {
+  background: #ffffff !important;
+}
+
+.month-cell.today {
+  outline: 2px solid #000080 !important;
+  outline-offset: -3px;
+}
+
+.month-cell.selected-week {
+  background: #dbe8ff !important;
+}
+
+.month-log-dot {
+  background: #000080 !important;
+}
+
+.month-cell-summary {
+  color: #000080 !important;
+  font-weight: bold;
+}
+
+/* Lydia logs: keep blue highlighted */
+.lyd-toggle-row.active,
+.exercise-block.with-lydia,
+.history-entry.with-lydia,
+.week-day.with-lydia,
+.month-cell.with-lydia {
+  background: #000080 !important;
+  color: #ffffff !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+}
+
+.lyd-toggle-row.active *,
+.exercise-block.with-lydia *,
+.history-entry.with-lydia *,
+.week-day.with-lydia *,
+.month-cell.with-lydia * {
+  color: #ffffff !important;
+}
+
+/* Toast/status bar */
+.toast {
+  background: var(--win-face) !important;
+  color: #000000 !important;
+  border-top: 2px solid var(--win-hilight) !important;
+  border-left: 2px solid var(--win-hilight) !important;
+  border-right: 2px solid var(--win-dk-shadow) !important;
+  border-bottom: 2px solid var(--win-dk-shadow) !important;
+  border-radius: 0 !important;
+}
+
+/* Strava button can stay orange for recognition */
+#btn-strava,
+#btn-strava-connect {
+  background: #fc4c02 !important;
+  color: #ffffff !important;
+  border-top: 2px solid #ffffff !important;
+  border-left: 2px solid #ffffff !important;
+  border-right: 2px solid #000000 !important;
+  border-bottom: 2px solid #000000 !important;
+  font-weight: bold !important;
+}
+
+/* Keep danger readable */
+.settings-btn.danger,
+button.danger {
+  color: #800000 !important;
+  font-weight: bold;
+}
+
+/* Strong focus states for phone/keyboard usability */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px dotted #000000 !important;
+  outline-offset: 2px;
+}
+
+/* Slightly larger text on mobile for readability */
+@media (max-width: 480px) {
+  body {
+    font-size: 15px;
+  }
+
+  .page-title {
+    font-size: 18px;
+  }
+
+  .card-title,
+  .day-name,
+  .history-date {
+    font-size: 15px;
+  }
+
+  .month-day-num {
+    font-size: 18px;
+  }
+
+  .month-cell {
+    min-height: 74px;
+    padding: 5px;
+  }
+}
 </style>
 </head>
 <body>
