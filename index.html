@@ -2562,8 +2562,9 @@ async function getValidStravaToken() {
       }));
       return d.access_token;
     }
+    toast("Token refresh error: " + (d.message || d.error || JSON.stringify(d)));
     console.log("Strava refresh failed:", d);
-  } catch(e) { console.log("Strava refresh error:", e); }
+  } catch(e) { console.log("Strava refresh error:", e); toast("Strava network error: " + e.message); }
   return null;
 }
 
@@ -2577,7 +2578,11 @@ async function syncStrava() {
     if (!token) { toast("Token refresh failed — check your refresh token in Settings"); btn.textContent = "Sync Strava Runs"; btn.disabled = false; return; }
     const res = await fetch("https://www.strava.com/api/v3/athlete/activities?per_page=10", { headers: { "Authorization": "Bearer " + token } });
     const acts = await res.json();
-    if (!Array.isArray(acts)) { toast("Strava sync failed"); btn.textContent = "Sync Strava Runs"; btn.disabled = false; return; }
+    if (!Array.isArray(acts)) {
+      const msg = acts && acts.message ? acts.message : JSON.stringify(acts);
+      toast("Strava: " + msg);
+      btn.textContent = "Sync Strava Runs"; btn.disabled = false; return;
+    }
     let synced = 0; const logs = loadAll();
     acts.forEach(function(act) {
       if (!["Run","Walk","Hike","VirtualRun"].includes(act.type)) return;
