@@ -2622,10 +2622,29 @@ function checkStravaCallback() {
   const params = new URLSearchParams(window.location.search);
   const code = params.get("code");
   if (code) {
-    // Show the code so it can be exchanged manually
-    toast("Got code — check URL bar and send to Claude");
-    console.log("STRAVA CODE:", code);
-    // Don't clear URL so user can copy the code
+    window.history.replaceState({}, "", window.location.pathname);
+    toast("Exchanging Strava code...");
+    fetch("https://www.strava.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id:     STRAVA_CLIENT_ID,
+        client_secret: STRAVA_CLIENT_SECRET,
+        code:          code,
+        grant_type:    "authorization_code"
+      })
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.refresh_token) {
+        saveStravaTokens({ refresh_token: d.refresh_token, access_token: d.access_token, expires_at: d.expires_at });
+        updateStravaStatus();
+        toast("Strava connected! Hit Sync Strava Runs ✓");
+      } else {
+        toast("Exchange failed: " + (d.message || JSON.stringify(d)));
+      }
+    })
+    .catch(e => toast("Exchange error: " + e.message));
   }
   if (params.get("error")) {
     window.history.replaceState({}, "", window.location.pathname);
