@@ -13,7 +13,7 @@
 
 :root {
   /* Classic Windows 98 palette */
-  --win-bg: #7f7f7f;
+  --win-bg:        #008080;   /* teal desktop */
   --win-face:      #C0C0C0;   /* control face */
   --win-hilight:   #FFFFFF;   /* highlight */
   --win-shadow:    #808080;   /* shadow (borders only) */
@@ -897,251 +897,6 @@ textarea.actual-input:disabled { background: var(--win-face); }
   height: 12px;
   border: 1px solid var(--accent);
   background: transparent;
-}
-
-
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   AUTHENTIC WINDOWS 98 RETRO THEME — FULL BUILD
-   Readability is prioritized over strict theme fidelity on small screens.
-═══════════════════════════════════════════════════════════════════════════ */
-:root {
-  --win-bg:        #008080;
-  --win-face:      #c0c0c0;
-  --win-hilight:   #ffffff;
-  --win-shadow:    #808080;
-  --win-dk-shadow: #000000;
-  --win-text:      #000000;
-  --win-text-dim:  #333333;
-  --win-caption:   #000080;
-  --win-cap-text:  #ffffff;
-  --win-btn-face:  #c0c0c0;
-  --win-btn-text:  #000000;
-  --accent:        #000080;
-  --accent-lit:    #000080;
-  --danger:        #800000;
-  --lyd-color:     #0000ff;
-  --lyd-cap:       #000080;
-  --font-ui: Tahoma, "MS Sans Serif", Geneva, sans-serif;
-  --font-mono: "Courier New", Courier, monospace;
-}
-
-html { background: var(--win-bg) !important; }
-body {
-  background: var(--win-bg) !important;
-  background-image: none !important;
-  font-family: var(--font-ui) !important;
-  font-size: 14px !important;
-  color: var(--win-text) !important;
-  letter-spacing: 0 !important;
-}
-
-.page-header,
-.win-titlebar {
-  background: var(--win-caption) !important;
-  color: var(--win-cap-text) !important;
-  border-bottom: 2px solid var(--win-dk-shadow) !important;
-  font-family: var(--font-ui) !important;
-  font-weight: bold !important;
-  letter-spacing: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.card,
-.week-day,
-.history-entry,
-.exercise-block,
-.win-window,
-.nav,
-.date-nav,
-.win-client,
-.win-menubar,
-.toast {
-  background: var(--win-face) !important;
-  color: var(--win-text) !important;
-  border-top: 2px solid var(--win-hilight) !important;
-  border-left: 2px solid var(--win-hilight) !important;
-  border-right: 2px solid var(--win-dk-shadow) !important;
-  border-bottom: 2px solid var(--win-dk-shadow) !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-
-.card-body,
-.week-day-body,
-.history-body,
-.plan-field,
-textarea,
-input,
-select,
-.notes-input,
-.actual-input,
-.score-input,
-.run-field {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-top: 2px solid var(--win-dk-shadow) !important;
-  border-left: 2px solid var(--win-dk-shadow) !important;
-  border-right: 2px solid var(--win-hilight) !important;
-  border-bottom: 2px solid var(--win-hilight) !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  font-family: var(--font-mono) !important;
-}
-
-.card-header,
-.ex-header {
-  background: var(--win-face) !important;
-  color: var(--win-text) !important;
-  border-bottom: 1px solid var(--win-shadow) !important;
-  font-weight: bold !important;
-}
-
-button,
-.btn-primary,
-.btn-secondary,
-.settings-btn,
-.nav-btn,
-.type-tab,
-.workout-chip,
-.today-btn,
-.date-nav-btn,
-.apply-day-btn,
-.lock-btn,
-.win-btn-sm {
-  background: var(--win-btn-face) !important;
-  color: var(--win-btn-text) !important;
-  border-top: 2px solid var(--win-hilight) !important;
-  border-left: 2px solid var(--win-hilight) !important;
-  border-right: 2px solid var(--win-dk-shadow) !important;
-  border-bottom: 2px solid var(--win-dk-shadow) !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  font-family: var(--font-ui) !important;
-  font-weight: normal !important;
-}
-
-button:active,
-.btn-primary:active,
-.btn-secondary:active,
-.settings-btn:active,
-.nav-btn:active,
-.type-tab:active,
-.workout-chip:active,
-.today-btn:active,
-.date-nav-btn:active,
-.apply-day-btn:active,
-.lock-btn:active,
-.nav-btn.active,
-.workout-chip.selected,
-.type-tab.active-Upper,
-.type-tab.active-Lower,
-.type-tab.active-Intervals,
-.type-tab.active-Run,
-.type-tab.active-Sprint,
-.type-tab.active-Basketball,
-.type-tab.active-Open {
-  background: #dfdfdf !important;
-  color: #000000 !important;
-  border-top: 2px solid var(--win-dk-shadow) !important;
-  border-left: 2px solid var(--win-dk-shadow) !important;
-  border-right: 2px solid var(--win-hilight) !important;
-  border-bottom: 2px solid var(--win-hilight) !important;
-}
-.nav-btn.active::after { display: none !important; }
-
-.wtype-badge {
-  border: 1px solid #000000 !important;
-  font-weight: bold !important;
-  border-radius: 0 !important;
-}
-.wtype-Upper      { background: #000080 !important; color: #ffffff !important; }
-.wtype-Lower      { background: #008000 !important; color: #ffffff !important; }
-.wtype-Intervals  { background: #800000 !important; color: #ffffff !important; }
-.wtype-Run        { background: #008080 !important; color: #ffffff !important; }
-.wtype-Sprint     { background: #800080 !important; color: #ffffff !important; }
-.wtype-Basketball { background: #804000 !important; color: #ffffff !important; }
-.wtype-Open       { background: #ffffff !important; color: #000000 !important; }
-
-/* Month view */
-.month-cell {
-  background: #c0c0c0 !important;
-  color: #000000 !important;
-  border-top: 2px solid var(--win-hilight) !important;
-  border-left: 2px solid var(--win-hilight) !important;
-  border-right: 2px solid var(--win-dk-shadow) !important;
-  border-bottom: 2px solid var(--win-dk-shadow) !important;
-  border-radius: 0 !important;
-}
-.month-cell.has-log { background: #ffffff !important; }
-.month-cell.today { outline: 2px solid #000080 !important; outline-offset: -3px !important; }
-.month-cell.selected-week { background: #dbe8ff !important; }
-.month-log-dot { background: #000080 !important; }
-.month-cell-summary { color: #000080 !important; font-weight: bold !important; }
-.month-cell.has-lydia {
-  background: #dbe8ff !important;
-  outline: 2px solid #0000ff !important;
-  outline-offset: -4px !important;
-}
-.month-cell.has-lydia .month-log-dot { background: #0000ff !important; }
-
-/* Lydia remains blue-highlighted/readable */
-.lyd-toggle-row.active {
-  background: #000080 !important;
-  color: #ffffff !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
-  border-right: 2px solid #000000 !important;
-  border-bottom: 2px solid #000000 !important;
-}
-.lyd-toggle-row.active * { color: #ffffff !important; }
-#lyd-abs-actual,
-#lyd-miles,
-#lyd-time,
-#lyd-rpe,
-[id^="lyd-actual-"] {
-  background: #e8f0ff !important;
-  border-top: 2px solid #000080 !important;
-  border-left: 2px solid #000080 !important;
-  border-right: 2px solid #ffffff !important;
-  border-bottom: 2px solid #ffffff !important;
-  color: #000000 !important;
-}
-
-.toast { font-family: var(--font-ui) !important; }
-
-#btn-strava,
-#btn-strava-connect {
-  background: #fc4c02 !important;
-  color: #ffffff !important;
-  border-top: 2px solid #ffffff !important;
-  border-left: 2px solid #ffffff !important;
-  border-right: 2px solid #000000 !important;
-  border-bottom: 2px solid #000000 !important;
-  font-weight: bold !important;
-}
-.settings-btn.danger,
-button.danger {
-  color: #800000 !important;
-  font-weight: bold !important;
-}
-button:focus,
-input:focus,
-textarea:focus,
-select:focus {
-  outline: 2px dotted #000000 !important;
-  outline-offset: 2px !important;
-}
-
-@media (max-width: 480px) {
-  body { font-size: 15px !important; }
-  .page-title { font-size: 18px !important; }
-  .card-title,
-  .day-name,
-  .history-date { font-size: 15px !important; }
-  .month-day-num { font-size: 18px !important; }
-  .month-cell { min-height: 74px !important; padding: 5px !important; }
 }
 
 </style>
@@ -2740,19 +2495,17 @@ function renderMonthView(anchorDate = currentWeekStart) {
   for (let cursor = new Date(gridStart); cursor <= gridEnd; cursor = addDays(cursor, 1)) {
     const dk = dateKey(cursor);
     const entry = logs[dk] || null;
-    const lydEntry = loadLyd()[dk] || null;
     const sched = schedule[dk] || null;
     const inMonth = cursor.getMonth() === monthDate.getMonth();
     const isToday = isSameDay(cursor, today);
     const inSelectedWeek = cursor >= currentWeekStart && cursor <= weekEnd;
-    const typeLabel = entry?.workoutType || lydEntry?.workoutType || sched?.type || '';
-    const summary = getMonthSummary(entry || lydEntry, sched);
+    const typeLabel = entry?.workoutType || sched?.type || '';
+    const summary = getMonthSummary(entry, sched);
 
     const classes = [
       'month-cell',
       inMonth ? '' : 'other-month',
       entry ? 'has-log' : '',
-      lydEntry ? 'has-lydia' : '',
       isToday ? 'today' : '',
       inSelectedWeek ? 'selected-week' : '',
     ].filter(Boolean).join(' ');
@@ -2760,7 +2513,7 @@ function renderMonthView(anchorDate = currentWeekStart) {
     html += `<button class="${classes}" onclick="goToDateFromMonth('${dk}')" title="${esc(dk)}${summary ? ' — ' + esc(summary) : ''}">
       <div class="month-cell-top">
         <span class="month-day-num">${cursor.getDate()}</span>
-        ${(entry || lydEntry) ? '<span class="month-log-dot"></span>' : ''}
+        ${entry ? '<span class="month-log-dot"></span>' : ''}
       </div>
       <div class="month-cell-type">${esc(typeLabel)}</div>
       <div class="month-cell-summary">${esc(summary)}</div>
