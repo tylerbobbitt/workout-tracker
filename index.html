@@ -2619,10 +2619,17 @@ function updateStravaStatus() {
 }
 
 function checkStravaCallback() {
-  // OAuth flow removed — using direct refresh token instead
   const params = new URLSearchParams(window.location.search);
-  if (params.get("code") || params.get("error")) {
+  const code = params.get("code");
+  if (code) {
+    // Show the code so it can be exchanged manually
+    toast("Got code — check URL bar and send to Claude");
+    console.log("STRAVA CODE:", code);
+    // Don't clear URL so user can copy the code
+  }
+  if (params.get("error")) {
     window.history.replaceState({}, "", window.location.pathname);
+    toast("Strava error: " + params.get("error"));
   }
 }
 
