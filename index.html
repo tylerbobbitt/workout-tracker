@@ -1078,6 +1078,39 @@ textarea.actual-input:disabled { background: var(--win-face); }
   padding:4px;
 }
 
+
+/* ── LYDIA-ONLY SESSION + CLASS LYDIA FIELDS ───────────────────────────── */
+.lyd-session-card {
+  background: #dbe8ff;
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  margin-bottom: 6px;
+}
+.lyd-only-badge {
+  display: inline-block;
+  padding: 0 6px;
+  background: #000080;
+  color: #fff;
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: bold;
+}
+.lyd-class-box {
+  margin-top: 8px;
+  padding: 8px;
+  background: rgba(91,155,213,.10);
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+}
+
 </style>
 </head>
 <body>
@@ -4213,6 +4246,433 @@ seedHistory();
 autoCleanOldData();
 renderToday();
 checkStravaCallback();
+
+
+// ── FINAL OVERRIDES: Lydia classes + Lydia-only sessions ──────────────────
+function isLydOnlySession(s) {
+  return !!(s && (s.owner === 'lydia' || s.lydiaOnly));
+}
+function currentParticipantName() {
+  return isLydOnlySession(activeSession) ? 'Lyd' : 'Tyler';
+}
+function startLydiaWorkoutPicker(type) {
+  window._todayLydPickedType = type;
+  if (type === 'Custom') loadWorkoutForOwner('Custom', 'Custom Workout', 'lydia');
+  else if (type === 'Class') loadWorkoutForOwner('Class', 'Class', 'lydia');
+  else renderToday();
+}
+function startWorkoutPicker(type) {
+  window._todayPickedType = type;
+  window._todayLydPickedType = null;
+  if (type === 'Custom') loadWorkoutForOwner('Custom', 'Custom Workout', 'tyler');
+  else if (type === 'Class') loadWorkoutForOwner('Class', 'Class', 'tyler');
+  else renderToday();
+}
+function loadWorkout(type, name) {
+  loadWorkoutForOwner(type, name, 'tyler');
+}
+function loadLydiaWorkout(type, name) {
+  loadWorkoutForOwner(type, name, 'lydia');
+}
+function loadWorkoutForOwner(type, name, owner='tyler') {
+  window._todayPickedType = null;
+  window._todayLydPickedType = null;
+  let workout = null;
+  if (type === 'Run') workout = WORKOUTS.Run;
+  else if (!['Custom','Class'].includes(type)) workout = (WORKOUTS[type] || []).find(w => w.name === name);
+
+  if (type === 'Class') {
+    activeSession = {
+      date: dateKey(currentDay), workoutType:'Class', workoutName:'Class', isCustom:true, isClass:true,
+      owner, lydiaOnly: owner === 'lydia',
+      className:'', instructor:'', duration:'', notes:'', sleep:'', readiness:'', soreness:'', knee:'', hamstring:'', rpe:'',
+      withLydia:false, lydRpe:'', lydClassNotes:'',
+      exercises: blankExercises(), isRun:false
+    };
+    show('log');
+    return;
+  }
+
+  const exercises = [];
+  if (workout && workout.exercises) {
+    workout.exercises.forEach((fn) => {
+      if (fn) {
+        const plan = fn();
+        exercises.push({ name: '', plan, actual: '', locked: false, superset: /\bSS\b|SS↕|Superset/i.test(String(plan)) });
+      }
+    });
+  } else {
+    for (let i = 0; i < 7; i++) exercises.push({ name: '', plan: '', actual: '', locked: false, superset:false });
+  }
+  while (exercises.length < 7) exercises.push({ name:'', plan:'', actual:'', locked:false, superset:false });
+
+  const isRun = (type === 'Intervals' || type === 'Sprint' || type === 'Run' || type === 'Basketball');
+  const isCustomFreeStyle = (type === 'Custom' || name === 'Custom ' + type);
+  activeSession = {
+    date: dateKey(currentDay), workoutType: type, workoutName: name, isCustom: isCustomFreeStyle,
+    owner, lydiaOnly: owner === 'lydia',
+    warmup: workout ? workout.warmup : '', jumps: workout ? (workout.jumps || '') : '', exercises,
+    abs: workout ? (workout.abs || '') : '', isRun: isRun || type === 'Run',
+    runPlan: workout && workout.run ? workout.run() : '', targetPace: workout ? (workout.targetPace || '') : '',
+    miles:'', time:'', sleep:'', soreness:'', knee:'', hamstring:'', readiness:'', rpe:'', notes:''
+  };
+  show('log');
+}
+
+function renderToday() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isToday = isSameDay(currentDay, today);
+  const dayOfWeek = currentDay.getDay();
+  const dk = dateKey(currentDay);
+  const sessions = getSessionsForDate(dk);
+  const lydSessions = getLydSessionsForDate(dk);
+
+  document.getElementById('today-date-main').textContent = fmtDate(currentDay);
+  document.getElementById('today-date-sub').textContent = isToday ? 'Today' : (currentDay < today ? 'Past' : 'Future');
+
+  const schedType = DEFAULT_SCHED[dayOfWeek] || '';
+  let html = '';
+
+  if (sessions.length) {
+    html += `<div class="card session-list-card"><div class="card-header"><span class="card-title">TYLER SESSIONS</span><span style="font-size:12px">${sessions.length}</span></div><div class="card-body">`;
+    sessions.forEach(({key, session:s}, idx) => {
+      html += `<div class="session-row">
+        <div class="session-row-title">
+          <span class="wtype-badge wtype-${esc(s.workoutType || 'Open')}">${esc(s.workoutType || '—')}</span>
+          <strong style="flex:1">${esc(sessionLabel(s))}</strong>
+          <button class="session-edit-btn" onclick="editFromHistory('${key}')">Edit</button><button class="session-edit-btn" onclick="deleteSessionFromToday('${key}')" style="color:#800000">Delete</button>
+        </div>
+        <div class="session-row-meta">Session ${idx+1}${s.withLydia ? ' · with Lyd' : ''}${s.rpe ? ' · RPE '+esc(s.rpe) : ''}${s.notes ? ' · notes saved' : ''}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  const standaloneLyd = lydSessions.filter(({key}) => !loadAll()[key]);
+  if (standaloneLyd.length) {
+    html += `<div class="card session-list-card"><div class="card-header"><span class="card-title">LYDIA SESSIONS</span><span style="font-size:12px">${standaloneLyd.length}</span></div><div class="card-body">`;
+    standaloneLyd.forEach(({key, session:s}, idx) => {
+      html += `<div class="session-row lyd-session-card">
+        <div class="session-row-title">
+          <span class="lyd-only-badge">LYD</span>
+          <span class="wtype-badge wtype-${esc(s.workoutType || 'Open')}">${esc(s.workoutType || '—')}</span>
+          <strong style="flex:1">${esc(sessionLabel(s))}</strong>
+          <button class="session-edit-btn" onclick="editLydiaFromHistory('${key}')">Edit</button><button class="session-edit-btn" onclick="deleteLydiaSessionFromToday('${key}')" style="color:#800000">Delete</button>
+        </div>
+        <div class="session-row-meta">Lyd session ${idx+1}${s.rpe ? ' · RPE '+esc(s.rpe) : ''}${s.notes ? ' · notes saved' : ''}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  if (schedType) {
+    html += `<div style="padding:10px 16px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;color:#444444">Scheduled:</span>
+      <span class="wtype-badge wtype-${esc(schedType)}">${esc(schedType)}</span>
+    </div>`;
+  }
+
+  html += `<div style="padding:0 16px 8px">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#444444;margin-bottom:8px;font-weight:600">${sessions.length ? 'Add Tyler session' : 'Start Tyler workout'}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+  WT_SESSION_TYPES.forEach(t => {
+    const active = (window._todayPickedType === t);
+    html += `<button class="type-tab${active?' active-'+(t==='Custom'?'Open':t):''}" onclick="startWorkoutPicker('${t}')">${t}</button>`;
+  });
+  html += `</div></div>`;
+
+  if (window._todayPickedType && !['Custom','Class'].includes(window._todayPickedType)) {
+    const type = window._todayPickedType;
+    const list = type === 'Run' ? [WORKOUTS.Run] : (WORKOUTS[type] || []);
+    html += `<div class="card"><div class="card-body">
+      <div style="font-size:11px;color:#444444;margin-bottom:8px">Choose ${type} workout for Tyler</div>
+      <div style="display:flex;flex-direction:column;gap:6px">`;
+    html += `<button class="workout-chip" onclick="loadWorkoutForOwner('${type}','Custom ${type}','tyler')"><div class="chip-name">✎ Custom ${type}</div><div class="chip-type">Freestyle blank log, categorized as ${type}</div></button>`;
+    list.forEach(w => {
+      const wname = w.name;
+      html += `<button class="workout-chip" onclick="loadWorkoutForOwner('${type}','${String(wname).replace(/'/g,"\\'")}','tyler')"><div class="chip-name">${esc(wname)}</div><div class="chip-type">${esc(typeof w.desc === 'function' ? w.desc() : w.desc)}</div></button>`;
+    });
+    html += `</div></div></div>`;
+  }
+
+  html += `<div style="padding:8px 16px 8px;border-top:1px solid #808080;margin-top:4px">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#000080;margin-bottom:8px;font-weight:600">Add Lydia-only session</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+  WT_SESSION_TYPES.forEach(t => {
+    const active = (window._todayLydPickedType === t);
+    html += `<button class="type-tab${active?' active-'+(t==='Custom'?'Open':t):''}" style="${active?'':'background:#dbe8ff'}" onclick="startLydiaWorkoutPicker('${t}')">Lyd ${t}</button>`;
+  });
+  html += `</div></div>`;
+
+  if (window._todayLydPickedType && !['Custom','Class'].includes(window._todayLydPickedType)) {
+    const type = window._todayLydPickedType;
+    const list = type === 'Run' ? [WORKOUTS.Run] : (WORKOUTS[type] || []);
+    html += `<div class="card"><div class="card-body" style="background:#dbe8ff">
+      <div style="font-size:11px;color:#000080;margin-bottom:8px;font-weight:bold">Choose ${type} workout for Lyd</div>
+      <div style="display:flex;flex-direction:column;gap:6px">`;
+    html += `<button class="workout-chip" onclick="loadWorkoutForOwner('${type}','Custom ${type}','lydia')"><div class="chip-name">✎ Custom ${type}</div><div class="chip-type">Lydia-only blank log</div></button>`;
+    list.forEach(w => {
+      const wname = w.name;
+      html += `<button class="workout-chip" onclick="loadWorkoutForOwner('${type}','${String(wname).replace(/'/g,"\\'")}','lydia')"><div class="chip-name">${esc(wname)}</div><div class="chip-type">${esc(typeof w.desc === 'function' ? w.desc() : w.desc)}</div></button>`;
+    });
+    html += `</div></div></div>`;
+  }
+
+  if (activeSession && isSameDay(new Date(activeSession.date + 'T00:00:00'), currentDay)) {
+    html += `<div class="card session-list-card"><div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div><div style="font-size:13px;color:#800000;font-weight:bold">▶ ${isLydOnlySession(activeSession) ? 'LYD SESSION ACTIVE' : 'SESSION ACTIVE'}</div><div style="font-weight:700;margin-top:2px">${esc(activeSession.workoutName || activeSession.workoutType)}</div></div>
+      <button class="session-edit-btn" onclick="show('log')">Log →</button>
+    </div></div>`;
+  }
+
+  document.getElementById('today-content').innerHTML = html;
+}
+
+function renderClassLog(s) {
+  const d = new Date(s.date + 'T00:00:00');
+  const lydOnly = isLydOnlySession(s);
+  const withLyd = !!s.withLydia;
+  const ownerLabel = lydOnly ? '<span class="lyd-only-badge">LYD ONLY</span>' : '<span class="wtype-badge wtype-Class">Class</span>';
+  let html = `<div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+    ${ownerLabel}
+    <span style="font-size:13px;font-weight:600">${esc(s.className || 'Class')}</span>
+    <span style="font-size:11px;color:#444444;margin-left:auto">${fmtDate(d)}</span>
+  </div>
+  <div class="card"><div class="card-header"><span class="card-title">CLASS DETAILS</span></div><div class="card-body">
+    <div class="class-grid">
+      <div><label class="class-field-label">Class name</label><input class="class-input" id="class-name" value="${esc(s.className||'')}" placeholder="Yoga, boxing, spin…"></div>
+      <div><label class="class-field-label">Instructor</label><input class="class-input" id="class-instructor" value="${esc(s.instructor||'')}" placeholder="Optional"></div>
+      <div><label class="class-field-label">Duration (min)</label><input class="class-input" id="class-duration" type="number" step="1" value="${esc(s.duration||'')}" placeholder="45"></div>
+      <div><label class="class-field-label">${lydOnly ? 'Lyd ' : ''}Intensity/RPE</label><input class="class-input" id="sc-rpe" type="number" min="1" max="10" value="${esc(s.rpe||'')}" placeholder="—"></div>
+    </div>`;
+  if (!lydOnly) {
+    html += `<div class="lyd-toggle-row ${withLyd?'active':''}" onclick="toggleLydia()" style="margin-top:10px"><div class="lyd-checkbox">${withLyd?'&#10003;':''}</div><span>With Lyd</span><span style="font-size:12px;opacity:.7">— also save this class to Lydia history</span></div>`;
+    if (withLyd) {
+      html += `<div class="lyd-class-box">
+        <div class="class-grid">
+          <div><label class="class-field-label" style="color:#000080;font-weight:bold">Lyd RPE</label><input class="class-input" id="lyd-rpe" type="number" min="1" max="10" value="${esc(s.lydRpe||'')}" placeholder="optional"></div>
+          <div><label class="class-field-label" style="color:#000080;font-weight:bold">Lyd notes</label><input class="class-input" id="lyd-class-notes" value="${esc(s.lydClassNotes||'')}" placeholder="optional"></div>
+        </div>
+      </div>`;
+    }
+  }
+  html += `</div></div>`;
+  html += renderCheckinsAndNotes(s, true);
+  html += `<button class="btn-primary" onclick="saveSession()">${lydOnly ? 'SAVE LYD CLASS' : 'SAVE CLASS'}</button><button class="btn-secondary" onclick="clearSession()">Discard Session</button><div style="height:20px"></div>`;
+  return html;
+}
+
+function renderLog() {
+  const logSub = document.getElementById('log-sub');
+  if (!activeSession) {
+    document.getElementById('log-content').innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><div class="empty-title">No active session</div><div class="empty-sub">Go to Today and start a session.</div></div><button class="btn-primary" onclick="show('today')">GO TO TODAY</button>`;
+    logSub.textContent = 'No session active';
+    return;
+  }
+  const s = activeSession;
+  const lydOnly = isLydOnlySession(s);
+  if (s.workoutType === 'Class' || s.isClass) {
+    logSub.textContent = lydOnly ? 'Lyd class session' : 'Class session';
+    document.getElementById('log-content').innerHTML = renderClassLog(s);
+    return;
+  }
+
+  const withLyd = !lydOnly && (s.withLydia || false);
+  const primaryName = lydOnly ? 'Lyd' : 'Tyler';
+  logSub.textContent = `${lydOnly ? 'Lyd · ' : ''}${s.workoutType} — ${s.workoutName}`;
+  const d = new Date(s.date + 'T00:00:00');
+  let html = `<div style="padding:10px 16px;display:flex;align-items:center;gap:10px">${lydOnly?'<span class="lyd-only-badge">LYD ONLY</span>':''}<span class="wtype-badge wtype-${esc(s.workoutType)}">${esc(s.workoutType)}</span><span style="font-size:13px;font-weight:600">${esc(s.workoutName)}</span><span style="font-size:11px;color:#444444;margin-left:auto">${fmtDate(d)}</span></div>`;
+
+  if (s.warmup !== undefined) html += `<div class="log-section-title">WARMUP</div><div class="exercise-block"><div class="ex-body"><div class="plan-field editable" contenteditable="true" id="warmup-plan" style="min-height:40px">${esc(s.warmup)}</div><label class="field-label">Actual</label><textarea class="actual-input" id="warmup-actual" rows="2" placeholder="What ${primaryName} did…">${esc(s.warmupActual||'')}</textarea></div></div>`;
+  if (s.jumps !== undefined) html += `<div class="log-section-title">JUMPS / PLYOS</div><div class="exercise-block"><div class="ex-body"><div class="plan-field editable" contenteditable="true" id="jumps-plan" style="min-height:40px">${esc(s.jumps)}</div><label class="field-label">Actual</label><textarea class="actual-input" id="jumps-actual" rows="2" placeholder="What ${primaryName} did…">${esc(s.jumpsActual||'')}</textarea></div></div>`;
+
+  html += `<div class="log-section-title">EXERCISES</div>`;
+  s.exercises = normalizeExercises(s.exercises);
+  for (let i = 0; i < 7; i++) {
+    const ex = s.exercises[i];
+    const locked = ex.locked;
+    const ss = !!ex.superset;
+    const lydEx = withLyd ? ((s.lydExercises && s.lydExercises[i]) || {actual:''}) : null;
+    const lydActualField = withLyd ? `<label class="field-label" style="color:#00006B;margin-top:6px;font-weight:bold">Lyd</label><textarea class="actual-input" id="lyd-actual-${i}" rows="2" placeholder="Lyd sets x reps @ weight..." style="border-color:rgba(91,155,213,.4);background:rgba(91,155,213,.06)" onchange="syncLyd(${i},this.value)">${esc(lydEx ? lydEx.actual : '')}</textarea>` : '';
+    html += `<div class="exercise-block${locked?' locked':''}${ss?' superset-on':''}" id="ex-block-${i}"><div class="ex-header"><div class="ex-num">${i+1}</div>${ss?'<span class="ss-badge">SS</span>':''}<input class="ex-name-input" id="ex-name-${i}" type="text" placeholder="Exercise name..." value="${esc(ex.name)}" ${locked?'disabled':''} onchange="syncEx(${i},'name',this.value)"><button class="ss-toggle${ss?' active':''}" onclick="toggleSuperset(${i})" title="Superset with next exercise">SS</button><button class="lock-btn" onclick="toggleLock(${i})" title="${locked?'Unlock':'Lock in'}">${locked?'&#10003;':'&rarr;'}</button></div><div class="ex-body"><label class="field-label">Plan</label><div class="plan-field${s.isCustom?' editable':''}" id="ex-plan-${i}" ${s.isCustom?'contenteditable="true" onblur="syncEx('+i+',\'plan\',this.innerText)"':''}>${esc(ex.plan)}</div><label class="field-label">${primaryName}</label><textarea class="actual-input" id="ex-actual-${i}" rows="2" placeholder="Sets x reps @ weight..." ${locked?'disabled':''} onchange="syncEx(${i},'actual',this.value)">${esc(ex.actual)}</textarea>${lydActualField}</div></div>`;
+  }
+
+  if (!lydOnly) html += `<div class="lyd-toggle-row ${withLyd?'active':''}" onclick="toggleLydia()"><div class="lyd-checkbox">${withLyd?'&#10003;':''}</div><span>With Lyd</span><span style="font-size:12px;opacity:.7">— log her actuals too</span></div>`;
+
+  html += `<div class="log-section-title">ABS</div><div class="exercise-block"><div class="ex-body"><label class="field-label">Plan</label><div class="plan-field${s.isCustom?' editable':''}" id="abs-plan" ${s.isCustom?'contenteditable="true"':''}>${esc(s.abs||'')}</div><label class="field-label">${primaryName}</label><textarea class="actual-input" id="abs-actual" rows="2" placeholder="What ${primaryName} did…">${esc(s.absActual||'')}</textarea>${withLyd ? `<label class="field-label" style="color:#00006B;margin-top:6px;font-weight:bold">Lyd</label><textarea class="actual-input" id="lyd-abs-actual" rows="1" style="border-color:rgba(91,155,213,.4);background:rgba(91,155,213,.06)" placeholder="Lyd abs…">${esc(s.lydAbsActual||'')}</textarea>` : ''}</div></div>`;
+
+  if (s.isRun || s.runPlan) {
+    html += `<div class="log-section-title">RUN</div><div class="card"><div class="card-body">${s.runPlan ? `<div style="font-size:13px;color:#005050;margin-bottom:10px;line-height:1.5;font-family:'Share Tech Mono',monospace">${esc(s.runPlan)}</div>` : ''}${s.targetPace ? `<div style="font-size:11px;color:#444444;margin-bottom:10px">🎯 ${esc(s.targetPace)}</div>` : ''}<div style="font-size:11px;font-weight:700;color:#444444;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">${primaryName}</div><div class="run-grid"><div><label class="field-label">Miles</label><input type="number" class="run-field" id="run-miles" step=".01" placeholder="0.0" value="${esc(s.miles||'')}"></div><div><label class="field-label">Time (min)</label><input type="number" class="run-field" id="run-time" step=".1" placeholder="0" value="${esc(s.time||'')}"></div><div><label class="field-label">Pace</label><div class="run-field" id="run-pace" style="font-size:13px;padding:10px">${calcPace(s.miles, s.time)}</div></div></div></div></div>`;
+  }
+
+  html += renderCheckinsAndNotes(s, false);
+  html += `<button class="btn-primary" onclick="saveSession()">${lydOnly ? 'SAVE LYD WORKOUT' : 'SAVE WORKOUT'}</button><button class="btn-secondary" onclick="clearSession()">Discard Session</button><div style="height:20px"></div>`;
+  document.getElementById('log-content').innerHTML = html;
+  if (s.isRun || s.runPlan) ['run-miles','run-time'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', updatePaceDisplay); });
+}
+
+function collectFormData() {
+  if (!activeSession) return;
+  const s = activeSession;
+  if (s.workoutType === 'Class' || s.isClass) {
+    s.className = document.getElementById('class-name')?.value || '';
+    s.instructor = document.getElementById('class-instructor')?.value || '';
+    s.duration = document.getElementById('class-duration')?.value || '';
+    s.workoutName = s.className || 'Class';
+    s.isClass = true;
+    s.lydRpe = document.getElementById('lyd-rpe')?.value || s.lydRpe || '';
+    s.lydClassNotes = document.getElementById('lyd-class-notes')?.value || s.lydClassNotes || '';
+  }
+  const warmupPlan = document.getElementById('warmup-plan');
+  const warmupActual = document.getElementById('warmup-actual');
+  if (warmupPlan) s.warmup = warmupPlan.innerText || warmupPlan.textContent;
+  if (warmupActual) s.warmupActual = warmupActual.value;
+  const jumpsPlan = document.getElementById('jumps-plan');
+  const jumpsActual = document.getElementById('jumps-actual');
+  if (jumpsPlan) s.jumps = jumpsPlan.innerText || jumpsPlan.textContent;
+  if (jumpsActual) s.jumpsActual = jumpsActual.value;
+  s.exercises = normalizeExercises(s.exercises);
+  for (let i = 0; i < 7; i++) {
+    const nameEl = document.getElementById(`ex-name-${i}`);
+    const actualEl = document.getElementById(`ex-actual-${i}`);
+    const planEl = document.getElementById(`ex-plan-${i}`);
+    if (nameEl) s.exercises[i].name = nameEl.value;
+    if (actualEl) s.exercises[i].actual = actualEl.value;
+    if (planEl && s.isCustom) s.exercises[i].plan = planEl.innerText || planEl.textContent;
+  }
+  const absActual = document.getElementById('abs-actual');
+  const absPlan = document.getElementById('abs-plan');
+  if (absActual) s.absActual = absActual.value;
+  if (absPlan && s.isCustom) s.abs = absPlan.innerText || absPlan.textContent;
+  s.miles = document.getElementById('run-miles')?.value || s.miles || '';
+  s.time  = document.getElementById('run-time')?.value || s.time || '';
+  if (s.withLydia) {
+    s.lydExercises = s.lydExercises || [];
+    for (let i=0;i<7;i++) {
+      const el = document.getElementById('lyd-actual-'+i);
+      if (!s.lydExercises[i]) s.lydExercises[i] = {actual:''};
+      if (el) s.lydExercises[i].actual = el.value;
+    }
+    const lydAbsEl = document.getElementById('lyd-abs-actual');
+    if (lydAbsEl) s.lydAbsActual = lydAbsEl.value;
+    const lydRpeEl = document.getElementById('lyd-rpe');
+    if (lydRpeEl) s.lydRpe = lydRpeEl.value;
+  }
+  s.sleep     = document.getElementById('sc-sleep')?.value || '';
+  s.readiness = document.getElementById('sc-readiness')?.value || '';
+  s.soreness  = document.getElementById('sc-soreness')?.value || '';
+  s.knee      = document.getElementById('sc-knee')?.value || '';
+  s.hamstring = document.getElementById('sc-hamstring')?.value || '';
+  s.rpe       = document.getElementById('sc-rpe')?.value || '';
+  s.notes     = document.getElementById('sc-notes')?.value || '';
+}
+
+function makeLydiaEntryFromActiveSession(key) {
+  const s = activeSession;
+  const classNotes = s.lydClassNotes || s.notes || '';
+  if (s.workoutType === 'Class' || s.isClass) {
+    return {
+      date: s.date, _sessionKey: key, owner:'lydia', lydiaOnly: isLydOnlySession(s), withTyler: !isLydOnlySession(s),
+      workoutType:'Class', workoutName:s.className || 'Class', isClass:true,
+      className:s.className || '', instructor:s.instructor || '', duration:s.duration || '',
+      rpe: s.lydRpe || s.rpe || '', notes: classNotes,
+      sleep: isLydOnlySession(s) ? (s.sleep || '') : '', readiness: isLydOnlySession(s) ? (s.readiness || '') : '',
+      soreness: isLydOnlySession(s) ? (s.soreness || '') : '', knee: isLydOnlySession(s) ? (s.knee || '') : '', hamstring: isLydOnlySession(s) ? (s.hamstring || '') : '',
+      exercises: [], isRun:false
+    };
+  }
+  if (isLydOnlySession(s)) {
+    return Object.assign({}, s, { _sessionKey:key, owner:'lydia', lydiaOnly:true, withTyler:false });
+  }
+  return {
+    date: s.date, _sessionKey: key, owner:'lydia', workoutType: s.workoutType, workoutName: s.workoutName,
+    exercises: (s.lydExercises || []).map((le, i) => ({
+      name: s.exercises[i] ? s.exercises[i].name : '',
+      plan: s.exercises[i] ? s.exercises[i].plan : '',
+      actual: le ? le.actual : '', locked: true,
+      superset: s.exercises[i] ? !!s.exercises[i].superset : false
+    })),
+    absActual: s.lydAbsActual || '', rpe: s.lydRpe || '', withTyler: true,
+    isRun:false, miles:'', time:'', notes:''
+  };
+}
+
+function saveSession() {
+  collectFormData();
+  if (!activeSession) return;
+  const d = new Date(activeSession.date + 'T00:00:00');
+
+  if (isLydOnlySession(activeSession)) {
+    const allLyd = loadLyd();
+    let key = activeSession._sessionKey || activeSession.sessionKey || '';
+    if (!key || baseSessionDate(key) !== activeSession.date) key = nextSessionKey(activeSession.date, Object.assign({}, loadAll(), allLyd));
+    activeSession._sessionKey = key;
+    const lydEntry = makeLydiaEntryFromActiveSession(key);
+    const lyd = loadLyd();
+    lyd[key] = lydEntry;
+    saveLyd(lyd);
+    toast('Lyd workout saved!');
+    activeSession = null;
+    show('today');
+    return;
+  }
+
+  const key = saveLog(d, activeSession);
+  activeSession._sessionKey = key;
+  if (activeSession.withLydia) {
+    const lyd = loadLyd();
+    lyd[key] = makeLydiaEntryFromActiveSession(key);
+    saveLyd(lyd);
+  }
+  toast('Workout saved!');
+  activeSession = null;
+  show('today');
+}
+
+function editLydiaFromHistory(key) {
+  const all = loadLyd();
+  if (all[key]) {
+    activeSession = Object.assign({_sessionKey:key, owner:'lydia', lydiaOnly:true}, all[key]);
+    currentDay = safeDateFromKey(key);
+    show('log');
+  }
+}
+function deleteLydiaSessionFromToday(key) {
+  if (!confirm('Delete this Lydia session permanently? This cannot be undone.')) return;
+  const lyd = loadLyd();
+  if (lyd[key]) { delete lyd[key]; saveLyd(lyd); toast('Lydia session deleted'); }
+  renderToday();
+  renderHistory();
+}
+function removeSessionByKey(key) {
+  if (!key) return false;
+  const all = loadAll();
+  const lyd = loadLyd();
+  let removed = false;
+  if (all[key]) { delete all[key]; removed = true; }
+  if (lyd[key]) { delete lyd[key]; removed = true; }
+  saveAll(all);
+  saveLyd(lyd);
+  return removed;
+}
+function clearSession() {
+  if (!activeSession) { show('today'); return; }
+  const key = activeSession._sessionKey || activeSession.sessionKey || '';
+  const isSavedSession = key && (!!loadAll()[key] || !!loadLyd()[key]);
+  if (isSavedSession) {
+    if (!confirm('Delete this saved session permanently? This cannot be undone.')) return;
+    removeSessionByKey(key);
+    toast('Session deleted');
+  } else {
+    if (!confirm('Discard this unsaved session?')) return;
+    toast('Unsaved session discarded');
+  }
+  activeSession = null;
+  show('today');
+  renderToday();
+  renderHistory();
+}
+
 </script>
 
 <nav class="nav">
