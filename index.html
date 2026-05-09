@@ -1248,6 +1248,44 @@ textarea.actual-input:disabled { background: var(--win-face); }
   margin: 2px 6px 8px;
 }
 
+.practice-key-display {
+  font-family: var(--font-ui);
+  font-size: 52px;
+  text-align: center;
+  color: #000;
+  background: #fff;
+  border-top: 2px solid var(--win-dk-shadow);
+  border-left: 2px solid var(--win-dk-shadow);
+  border-right: 2px solid var(--win-hilight);
+  border-bottom: 2px solid var(--win-hilight);
+  padding: 10px 6px;
+  margin: 2px 6px 8px;
+  line-height: 1;
+}
+.practice-key-meta {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--win-text-dim);
+  text-align: center;
+  margin: -2px 6px 8px;
+}
+.practice-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  margin: 0 6px 8px;
+  background: var(--win-face);
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  cursor: pointer;
+}
+.practice-checkbox-row input { width: 14px; height: 14px; }
+
 </style>
 </head>
 <body>
@@ -5010,6 +5048,69 @@ let metroCtx = null, metroTimer = null, metroRunning = false, metroBeat = 0;
 let metroBpm = 80, metroBeatsPerMeasure = 4, metroNoteValue = 4;
 let metroAccentMode = 'downbeat';
 
+const PRACTICE_KEYGEN_STORE = 'wt_practice_keygen_v1';
+const PRACTICE_KEYS = ['C','Db/C#','D','Eb/D#','E','F','Gb/F#','G','Ab/G#','A','Bb/A#','B'];
+let practiceKeyFullCycle = false;
+let practiceKeyCurrent = '';
+let practiceKeyRemaining = [];
+
+function loadPracticeKeyGen() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PRACTICE_KEYGEN_STORE) || '{}');
+    practiceKeyFullCycle = !!raw.fullCycle;
+    practiceKeyCurrent = raw.current || '';
+    practiceKeyRemaining = Array.isArray(raw.remaining) ? raw.remaining.filter(k => PRACTICE_KEYS.includes(k)) : [];
+  } catch(e) {
+    practiceKeyFullCycle = false; practiceKeyCurrent = ''; practiceKeyRemaining = [];
+  }
+}
+function savePracticeKeyGen() {
+  localStorage.setItem(PRACTICE_KEYGEN_STORE, JSON.stringify({
+    fullCycle: practiceKeyFullCycle,
+    current: practiceKeyCurrent,
+    remaining: practiceKeyRemaining
+  }));
+}
+function shuffledPracticeKeys() {
+  const arr = PRACTICE_KEYS.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+function practiceKeyMetaText() {
+  if (!practiceKeyFullCycle) return 'Full-cycle off · fully random';
+  const left = practiceKeyRemaining.length;
+  return 'Full-cycle on · ' + left + ' key' + (left === 1 ? '' : 's') + ' left before reset';
+}
+function updatePracticeKeyDisplay() {
+  const display = document.getElementById('practice-key-display');
+  const meta = document.getElementById('practice-key-meta');
+  const cb = document.getElementById('practice-key-full-cycle');
+  if (display) display.textContent = practiceKeyCurrent || '—';
+  if (meta) meta.textContent = practiceKeyMetaText();
+  if (cb) cb.checked = !!practiceKeyFullCycle;
+}
+function setPracticeKeyFullCycle(on) {
+  practiceKeyFullCycle = !!on;
+  if (practiceKeyFullCycle && practiceKeyRemaining.length === 0) practiceKeyRemaining = shuffledPracticeKeys();
+  savePracticeKeyGen();
+  updatePracticeKeyDisplay();
+}
+function generatePracticeKey() {
+  if (practiceKeyFullCycle) {
+    if (!practiceKeyRemaining.length) practiceKeyRemaining = shuffledPracticeKeys();
+    const idx = Math.floor(Math.random() * practiceKeyRemaining.length);
+    practiceKeyCurrent = practiceKeyRemaining.splice(idx, 1)[0];
+  } else {
+    practiceKeyCurrent = PRACTICE_KEYS[Math.floor(Math.random() * PRACTICE_KEYS.length)];
+  }
+  savePracticeKeyGen();
+  updatePracticeKeyDisplay();
+}
+loadPracticeKeyGen();
+
 function metroStateFromControls() {
   metroBpm = Math.max(30, Math.min(260, Number(document.getElementById('metro-bpm')?.value || metroBpm || 80)));
   metroBeatsPerMeasure = Math.max(1, Math.min(12, Number(document.getElementById('metro-beats')?.value || metroBeatsPerMeasure || 4)));
@@ -5113,9 +5214,17 @@ function renderPracticeToday() {
     </div>
     <div class="practice-controls"><button class="${metroRunning?'stop':'start'}" onclick="metronomeToggle()">${metroRunning?'STOP':'START'} METRONOME</button><button onclick="metronomeTap(true)">ACCENT CLICK</button><button onclick="metronomeTap(false)">NORMAL CLICK</button></div>
   </div></div>`;
+
+  html += `<div class="card"><div class="card-header"><span class="card-title">RANDOM KEY</span><span style="font-size:12px">PRACTICE</span></div><div class="card-body">
+    <div id="practice-key-display" class="practice-key-display">${practiceKeyCurrent || '—'}</div>
+    <div id="practice-key-meta" class="practice-key-meta">${practiceKeyMetaText()}</div>
+    <label class="practice-checkbox-row"><input id="practice-key-full-cycle" type="checkbox" ${practiceKeyFullCycle?'checked':''} onchange="setPracticeKeyFullCycle(this.checked)"> Full-cycle: use every key once before restarting</label>
+    <div class="practice-controls"><button class="start" onclick="generatePracticeKey()">GENERATE KEY</button></div>
+  </div></div>`;
   content.innerHTML = html;
   updatePracticeTimerDisplay();
   updateMetronomeDisplay();
+  updatePracticeKeyDisplay();
 }
 
 function shiftPracticeDay(n) { currentDay = addDays(currentDay, n); renderPracticeToday(); }
@@ -5188,31 +5297,175 @@ show = function(name) {
   else if (name === 'practice') renderPractice();
 };
 
-// Override CSV export/import to include both workout rows and practice rows in one round-trippable CSV.
+// Override CSV export/import to include Tyler workouts, Lydia workouts, and practice rows in one duplicate-safe CSV.
+function boolCSV(v) { return v ? '1' : '0'; }
+function truthyCSV(v) {
+  const x = String(v || '').trim().toLowerCase();
+  return x === '1' || x === 'true' || x === 'yes' || x === 'y';
+}
+function stableStringify(obj) {
+  if (Array.isArray(obj)) return '[' + obj.map(stableStringify).join(',') + ']';
+  if (obj && typeof obj === 'object') {
+    return '{' + Object.keys(obj).sort().map(k => JSON.stringify(k) + ':' + stableStringify(obj[k])).join(',') + '}';
+  }
+  return JSON.stringify(obj == null ? '' : obj);
+}
+function canonicalWorkoutSession(s, key, recordType='WORKOUT') {
+  const dk = (s && s.date) || baseSessionDate(key);
+  return {
+    recordType,
+    date: dk || '',
+    owner: recordType === 'LYDIA' ? 'lydia' : 'tyler',
+    lydiaOnly: !!(s && s.lydiaOnly),
+    withTyler: !!(s && s.withTyler),
+    workoutType: (s && s.workoutType) || '',
+    workoutName: (s && s.workoutName) || '',
+    isClass: !!(s && s.isClass),
+    isRun: !!(s && s.isRun),
+    miles: (s && s.miles) || '',
+    time: (s && s.time) || '',
+    rpe: (s && s.rpe) || '',
+    notes: (s && s.notes) || '',
+    className: (s && s.className) || '',
+    instructor: (s && s.instructor) || '',
+    duration: (s && s.duration) || '',
+    warmup: (s && s.warmup) || '',
+    warmupActual: (s && s.warmupActual) || '',
+    jumps: (s && s.jumps) || '',
+    jumpsActual: (s && s.jumpsActual) || '',
+    abs: (s && s.abs) || '',
+    absActual: (s && s.absActual) || '',
+    sleep: (s && s.sleep) || '',
+    readiness: (s && s.readiness) || '',
+    soreness: (s && s.soreness) || '',
+    knee: (s && s.knee) || '',
+    hamstring: (s && s.hamstring) || '',
+    stravaId: (s && s.stravaId) || '',
+    exercises: normalizeExercises(s && s.exercises)
+  };
+}
+function canonicalPracticeSession(s, key) {
+  return {
+    recordType: 'PRACTICE',
+    date: (s && s.date) || practiceBaseDate(key),
+    practiceType: (s && s.practiceType) || 'Guitar',
+    warmup: (s && s.warmup) || '',
+    blocks: normalizePracticeBlocks(s && s.blocks),
+    eartraining: (s && s.eartraining) || '',
+    notes: (s && s.notes) || '',
+    productivity: (s && s.productivity) || '',
+    durationSeconds: Number((s && s.durationSeconds) || 0) || 0
+  };
+}
+function workoutSignature(s, key, recordType='WORKOUT') { return stableStringify(canonicalWorkoutSession(s, key, recordType)); }
+function practiceSignature(s, key) { return stableStringify(canonicalPracticeSession(s, key)); }
+function signatureSetForWorkouts(store, recordType) {
+  const set = new Set();
+  Object.entries(store || {}).forEach(([k,v]) => { if (v) set.add(workoutSignature(v, k, recordType)); });
+  return set;
+}
+function signatureSetForPractice(store) {
+  const set = new Set();
+  Object.entries(store || {}).forEach(([k,v]) => { if (v) set.add(practiceSignature(v, k)); });
+  return set;
+}
+function chooseImportKey(rawKey, dk, store, style='workout', combinedStore=null) {
+  let key = String(rawKey || '').trim();
+  const baseFn = style === 'practice' ? practiceBaseDate : baseSessionDate;
+  const nextFn = style === 'practice' ? practiceNextKey : nextSessionKey;
+  if (!key || baseFn(key) !== dk || store[key]) key = nextFn(dk, combinedStore || store);
+  return key;
+}
+function buildWorkoutFromImport(get, dk, recordType, key) {
+  let exercises = blankExercises();
+  const exJson = get('ExercisesJSON');
+  if (exJson) { try { exercises = normalizeExercises(JSON.parse(exJson)); } catch(e) {} }
+  for (let i=1;i<=7;i++) {
+    const nm=get('Exercise'+i+'Name'), pl=get('Exercise'+i+'Plan'), ac=get('Exercise'+i+'Actual'), lk=get('Exercise'+i+'Locked'), ss=get('Exercise'+i+'Superset');
+    if (nm||pl||ac||lk||ss) exercises[i-1] = { name:nm, plan:pl, actual:ac, locked:truthyCSV(lk), superset:truthyCSV(ss) };
+  }
+  const miles=get('Miles'), isRunVal=get('IsRun');
+  const isRun = truthyCSV(isRunVal) || parseFloat(miles)>0;
+  const owner = recordType === 'LYDIA' ? 'lydia' : 'tyler';
+  return {
+    _sessionKey:key,
+    date:dk,
+    owner,
+    lydiaOnly: recordType === 'LYDIA' ? truthyCSV(get('LydiaOnly')) : false,
+    withTyler: recordType === 'LYDIA' ? truthyCSV(get('WithTyler')) : false,
+    workoutType:get('WorkoutType') || 'Open',
+    workoutName:get('WorkoutName') || (recordType === 'LYDIA' ? 'Imported Lyd Session' : 'Imported'),
+    isCustom:true,
+    fromHistory:true,
+    isClass: truthyCSV(get('IsClass')) || (get('WorkoutType') === 'Class'),
+    className:get('ClassName'),
+    instructor:get('Instructor'),
+    duration:get('Duration'),
+    warmup:get('Warmup'),
+    warmupActual:get('WarmupActual'),
+    jumps:get('Jumps'),
+    jumpsActual:get('JumpsActual'),
+    exercises,
+    abs:get('Abs'),
+    absActual:get('AbsActual'),
+    isRun,
+    miles,
+    time:get('Time'),
+    rpe:get('RPE'),
+    notes:get('Notes'),
+    sleep:get('Sleep'),
+    readiness:get('Readiness'),
+    soreness:get('Soreness'),
+    knee:get('Knee'),
+    hamstring:get('Hamstring'),
+    stravaId:get('StravaId')
+  };
+}
+function buildPracticeFromImport(get, dk, key) {
+  let blocks = normalizePracticeBlocks([]);
+  const blocksJson = get('PracticeBlocksJSON');
+  if (blocksJson) { try { blocks = normalizePracticeBlocks(JSON.parse(blocksJson)); } catch(e) {} }
+  return {
+    _sessionKey:key,
+    date:dk,
+    practiceType:get('PracticeType') || 'Guitar',
+    warmup:get('Warmup'),
+    blocks,
+    eartraining:get('Eartraining'),
+    notes:get('Notes'),
+    productivity:get('Productivity'),
+    durationSeconds:Number(get('DurationSeconds') || 0) || 0,
+    importedAt:new Date().toISOString()
+  };
+}
+
 exportCSV = function() {
   const workouts = loadAll();
+  const lydia = loadLyd();
   const practice = loadPractice();
   const startDefault = new Date(); startDefault.setMonth(startDefault.getMonth() - 3);
   const startStr = startDefault.toISOString().slice(0,10), endStr = new Date().toISOString().slice(0,10);
   const start = prompt('Export FROM date (YYYY-MM-DD):', startStr); if (start === null) return;
   const end = prompt('Export TO date (YYYY-MM-DD):', endStr); if (end === null) return;
-  const headers = ['RecordType','SessionKey','Date','WorkoutType','WorkoutName','PracticeType','IsRun','Miles','Time','DurationSeconds','RPE','Productivity','Notes','ClassName','Instructor','Duration','Warmup','WarmupActual','Jumps','JumpsActual','Abs','AbsActual','Eartraining','Sleep','Readiness','Soreness','Knee','Hamstring','StravaId','ExercisesJSON','PracticeBlocksJSON'];
+  const headers = ['RecordType','Owner','SessionKey','Date','WorkoutType','WorkoutName','PracticeType','LydiaOnly','WithTyler','IsClass','IsRun','Miles','Time','DurationSeconds','RPE','Productivity','Notes','ClassName','Instructor','Duration','Warmup','WarmupActual','Jumps','JumpsActual','Abs','AbsActual','Eartraining','Sleep','Readiness','Soreness','Knee','Hamstring','StravaId','ExercisesJSON','PracticeBlocksJSON'];
   for (let i=1;i<=7;i++) headers.push('Exercise'+i+'Name','Exercise'+i+'Plan','Exercise'+i+'Actual','Exercise'+i+'Locked','Exercise'+i+'Superset');
   const rows = [headers];
-  Object.entries(workouts).sort().forEach(([key,s]) => {
+  const pushWorkoutRow = (recordType, owner, key, s) => {
     const dk = baseSessionDate(key); if (!s || dk < start || dk > end) return;
     const exercises = normalizeExercises(s.exercises);
-    const row = ['WORKOUT', key, dk, s.workoutType||'', s.workoutName||'', '', s.isRun?'1':'0', s.miles||'', s.time||'', '', s.rpe||'', '', s.notes||'', s.className||'', s.instructor||'', s.duration||'', s.warmup||'', s.warmupActual||'', s.jumps||'', s.jumpsActual||'', s.abs||'', s.absActual||'', '', s.sleep||'', s.readiness||'', s.soreness||'', s.knee||'', s.hamstring||'', s.stravaId||'', JSON.stringify(exercises), ''];
-    exercises.forEach(e => row.push(e.name||'', e.plan||'', e.actual||'', e.locked?'1':'0', e.superset?'1':'0'));
+    const row = [recordType, owner, key, dk, s.workoutType||'', s.workoutName||'', '', boolCSV(s.lydiaOnly), boolCSV(s.withTyler), boolCSV(s.isClass || s.workoutType === 'Class'), boolCSV(s.isRun), s.miles||'', s.time||'', '', s.rpe||'', '', s.notes||'', s.className||'', s.instructor||'', s.duration||'', s.warmup||'', s.warmupActual||'', s.jumps||'', s.jumpsActual||'', s.abs||'', s.absActual||'', '', s.sleep||'', s.readiness||'', s.soreness||'', s.knee||'', s.hamstring||'', s.stravaId||'', JSON.stringify(exercises), ''];
+    exercises.forEach(e => row.push(e.name||'', e.plan||'', e.actual||'', boolCSV(e.locked), boolCSV(e.superset)));
     rows.push(row);
-  });
+  };
+  Object.entries(workouts).sort().forEach(([key,s]) => pushWorkoutRow('WORKOUT', 'tyler', key, s));
+  Object.entries(lydia).sort().forEach(([key,s]) => pushWorkoutRow('LYDIA', 'lydia', key, s));
   Object.entries(practice).sort().forEach(([key,s]) => {
     const dk = practiceBaseDate(key); if (!s || dk < start || dk > end) return;
-    const row = ['PRACTICE', key, dk, '', '', s.practiceType||'', '', '', '', s.durationSeconds||'', '', s.productivity||'', s.notes||'', '', '', '', s.warmup||'', '', '', '', '', '', s.eartraining||'', '', '', '', '', '', '', '', JSON.stringify(normalizePracticeBlocks(s.blocks))];
+    const row = ['PRACTICE', 'tyler', key, dk, '', '', s.practiceType||'', '', '', '', '', '', '', s.durationSeconds||'', '', s.productivity||'', s.notes||'', '', '', '', s.warmup||'', '', '', '', '', '', s.eartraining||'', '', '', '', '', '', '', '', JSON.stringify(normalizePracticeBlocks(s.blocks))];
     for (let i=1;i<=7;i++) row.push('', '', '', '', '');
     rows.push(row);
   });
-  if (rows.length === 1) { toast('No workout or practice sessions found in that date range'); return; }
+  if (rows.length === 1) { toast('No workout, Lydia, or practice sessions found in that date range'); return; }
   const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `train_export_${start}_to_${end}.csv`; a.click(); URL.revokeObjectURL(url);
@@ -5229,34 +5482,47 @@ importCSV = function() {
       const header = rows[0].map(h => String(h).trim().toLowerCase());
       const idx = name => header.indexOf(name.toLowerCase());
       const dateIdx = idx('date'); if (dateIdx === -1) { toast('CSV must have a Date column'); return; }
-      const all = loadAll(); const practice = loadPractice();
-      let addedW=0, addedP=0, skipped=0;
+      const all = loadAll();
+      const lydia = loadLyd();
+      const practice = loadPractice();
+      const allSigs = signatureSetForWorkouts(all, 'WORKOUT');
+      const lydSigs = signatureSetForWorkouts(lydia, 'LYDIA');
+      const practiceSigs = signatureSetForPractice(practice);
+      let addedW=0, addedL=0, addedP=0, skipped=0, dupes=0;
       for (let r=1;r<rows.length;r++) {
-        const cols = rows[r]; const get = name => { const i=idx(name); return i>=0 ? (cols[i] || '') : ''; };
+        const cols = rows[r];
+        const get = name => { const i=idx(name); return i>=0 ? (cols[i] || '') : ''; };
         const dk = cols[dateIdx] || ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(dk)) { skipped++; continue; }
-        const rt = (get('RecordType') || '').toUpperCase();
+        let rt = (get('RecordType') || '').toUpperCase();
         const looksPractice = rt === 'PRACTICE' || !!get('PracticeType') || !!get('PracticeBlocksJSON') || !!get('Eartraining');
         if (looksPractice) {
-          let key = get('SessionKey'); if (!key || practiceBaseDate(key) !== dk || practice[key]) key = practiceNextKey(dk, practice);
-          let blocks = normalizePracticeBlocks([]); const blocksJson = get('PracticeBlocksJSON');
-          if (blocksJson) { try { blocks = normalizePracticeBlocks(JSON.parse(blocksJson)); } catch(e) {} }
-          practice[key] = {_sessionKey:key, date:dk, practiceType:get('PracticeType')||'Guitar', warmup:get('Warmup'), blocks, eartraining:get('Eartraining'), notes:get('Notes'), productivity:get('Productivity'), durationSeconds:Number(get('DurationSeconds')||0)||0, importedAt:new Date().toISOString()};
-          addedP++; continue;
+          let key = chooseImportKey(get('SessionKey'), dk, practice, 'practice');
+          const candidate = buildPracticeFromImport(get, dk, key);
+          const sig = practiceSignature(candidate, key);
+          if (practiceSigs.has(sig)) { dupes++; continue; }
+          practice[key] = candidate; practiceSigs.add(sig); addedP++; continue;
         }
-        let key = get('SessionKey'); if (!key || baseSessionDate(key) !== dk || all[key]) key = nextSessionKey(dk, all);
-        let exercises = blankExercises(); const exJson = get('ExercisesJSON');
-        if (exJson) { try { exercises = normalizeExercises(JSON.parse(exJson)); } catch(e) {} }
-        for (let i=1;i<=7;i++) {
-          const nm=get('Exercise'+i+'Name'), pl=get('Exercise'+i+'Plan'), ac=get('Exercise'+i+'Actual'), lk=get('Exercise'+i+'Locked'), ss=get('Exercise'+i+'Superset');
-          if (nm||pl||ac||lk||ss) exercises[i-1] = { name:nm, plan:pl, actual:ac, locked:lk==='1'||lk.toLowerCase()==='true', superset:ss==='1'||ss.toLowerCase()==='true' };
+        if (rt !== 'LYDIA') rt = 'WORKOUT';
+        if (rt === 'LYDIA') {
+          let key = chooseImportKey(get('SessionKey'), dk, lydia, 'workout', Object.assign({}, all, lydia));
+          const candidate = buildWorkoutFromImport(get, dk, 'LYDIA', key);
+          candidate.owner = 'lydia';
+          if (!candidate.lydiaOnly && !candidate.withTyler) candidate.lydiaOnly = !all[key];
+          const sig = workoutSignature(candidate, key, 'LYDIA');
+          if (lydSigs.has(sig)) { dupes++; continue; }
+          lydia[key] = candidate; lydSigs.add(sig); addedL++; continue;
         }
-        const miles=get('Miles'), isRunVal=get('IsRun');
-        const isRun = isRunVal==='1'||isRunVal.toLowerCase()==='true'||parseFloat(miles)>0;
-        all[key] = {_sessionKey:key, date:dk, workoutType:get('WorkoutType')||'Open', workoutName:get('WorkoutName')||'Imported', isCustom:true, fromHistory:true, className:get('ClassName'), instructor:get('Instructor'), duration:get('Duration'), warmup:get('Warmup'), warmupActual:get('WarmupActual'), jumps:get('Jumps'), jumpsActual:get('JumpsActual'), exercises, abs:get('Abs'), absActual:get('AbsActual'), isRun, miles, time:get('Time'), rpe:get('RPE'), notes:get('Notes'), sleep:get('Sleep'), readiness:get('Readiness'), soreness:get('Soreness'), knee:get('Knee'), hamstring:get('Hamstring'), stravaId:get('StravaId')};
-        addedW++;
+        let key = chooseImportKey(get('SessionKey'), dk, all, 'workout');
+        const candidate = buildWorkoutFromImport(get, dk, 'WORKOUT', key);
+        const sig = workoutSignature(candidate, key, 'WORKOUT');
+        if (allSigs.has(sig)) { dupes++; continue; }
+        all[key] = candidate; allSigs.add(sig); addedW++;
       }
-      saveAll(all); savePractice(practice); renderToday(); renderHistory(); if (document.getElementById('page-practice')?.classList.contains('active')) renderPractice();
-      toast(`Imported ${addedW} workout + ${addedP} practice row(s)${skipped?' · '+skipped+' skipped':''} ✓`);
+      saveAll(all); saveLyd(lydia); savePractice(practice);
+      renderToday(); renderHistory(); if (document.getElementById('page-practice')?.classList.contains('active')) renderPractice();
+      const importedMsg = `Imported ${addedW} Tyler + ${addedL} Lydia + ${addedP} practice row(s)`;
+      const skipMsg = `${dupes ? ' · '+dupes+' duplicate(s) skipped' : ''}${skipped ? ' · '+skipped+' invalid row(s) skipped' : ''}`;
+      toast(importedMsg + skipMsg + ' ✓');
     };
     reader.readAsText(file);
   };
