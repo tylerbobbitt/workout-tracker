@@ -986,6 +986,98 @@ textarea.actual-input:disabled { background: var(--win-face); }
   background: transparent;
 }
 
+
+
+/* ── MULTI-SESSION / SUPERSET / CLASS ADDITIONS ─────────────────────────── */
+.wtype-Class { background: #0000A0; color: #fff; }
+.session-list-card { margin: 8px 6px; }
+.session-row {
+  background: var(--win-face);
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  padding: 6px;
+  margin-bottom: 4px;
+}
+.session-row-title { display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+.session-row-meta { font-size:12px; color: var(--win-text-dim); }
+.session-edit-btn {
+  padding: 2px 8px;
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  background: var(--win-btn-face);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  cursor:pointer;
+}
+.ss-toggle {
+  padding: 1px 6px;
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  background: var(--win-btn-face);
+  color: var(--win-text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ss-toggle.active {
+  background: #000080;
+  color: #fff;
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+}
+.ss-badge {
+  display:inline-block;
+  padding: 0 4px;
+  margin-right: 4px;
+  background: #000080;
+  color:#fff;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  border: 1px solid #000;
+}
+.exercise-block.superset-on {
+  position: relative;
+  border-left: 4px solid #000080;
+}
+.exercise-block.superset-on::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  bottom: -9px;
+  width: 18px;
+  height: 10px;
+  border-left: 3px solid #000080;
+  border-bottom: 3px solid #000080;
+  pointer-events: none;
+}
+.class-grid {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:6px;
+}
+.class-field-label { font-family: var(--font-ui); font-size: 13px; display:block; margin-bottom:2px; }
+.class-input {
+  width:100%;
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+  background:#fff;
+  color:#000;
+  font-family: var(--font-mono);
+  font-size:14px;
+  padding:4px;
+}
+
 </style>
 </head>
 <body>
@@ -3447,6 +3539,674 @@ function itPreset(work, rest, rounds, delay) {
   document.getElementById('it-rest').value = rest;
   document.getElementById('it-rounds').value = rounds;
   document.getElementById('it-delay').value = delay;
+}
+
+
+// ── OVERRIDE: multi-session, supersets, class logging, Strava duplicate-safe sync ──
+const WT_SESSION_TYPES = ['Upper','Lower','Intervals','Sprint','Basketball','Run','Class','Custom'];
+
+function baseSessionDate(key) {
+  return String(key || '').slice(0, 10);
+}
+function sessionSortIndex(key) {
+  const m = String(key || '').match(/_(\d+)$/);
+  return m ? parseInt(m[1], 10) : 1;
+}
+function nextSessionKey(dk, all = loadAll()) {
+  if (!all[dk]) return dk;
+  let n = 2;
+  while (all[`${dk}_${n}`]) n++;
+  return `${dk}_${n}`;
+}
+function sessionsForDateKey(dk, source = loadAll()) {
+  return Object.entries(source)
+    .filter(([k, v]) => v && (baseSessionDate(k) === dk || v.date === dk))
+    .sort(([a], [b]) => sessionSortIndex(a) - sessionSortIndex(b))
+    .map(([key, session]) => ({ key, session: Object.assign({_sessionKey:key}, session) }));
+}
+function getSessionsForDate(d) {
+  const dk = typeof d === 'string' ? d.slice(0,10) : dateKey(d);
+  return sessionsForDateKey(dk, loadAll());
+}
+function getLydSessionsForDate(d) {
+  const dk = typeof d === 'string' ? d.slice(0,10) : dateKey(d);
+  return sessionsForDateKey(dk, loadLyd());
+}
+function getLog(d) {
+  const sessions = getSessionsForDate(d);
+  return sessions.length ? sessions[0].session : null;
+}
+function saveLog(d, data) {
+  const all = loadAll();
+  const dk = typeof d === 'string' ? d.slice(0,10) : dateKey(d);
+  let key = data._sessionKey || data.sessionKey || '';
+  if (!key || baseSessionDate(key) !== dk) key = nextSessionKey(dk, all);
+  data.date = dk;
+  data._sessionKey = key;
+  all[key] = data;
+  saveAll(all);
+  return key;
+}
+function getLydLog(d) {
+  const sessions = getLydSessionsForDate(d);
+  return sessions.length ? sessions[0].session : null;
+}
+function saveLydLog(d, e) {
+  const all = loadLyd();
+  const dk = typeof d === 'string' ? d.slice(0,10) : dateKey(d);
+  const key = e._sessionKey || e.sessionKey || nextSessionKey(dk, all);
+  e.date = dk;
+  e._sessionKey = key;
+  all[key] = e;
+  saveLyd(all);
+  return key;
+}
+function blankExercises() {
+  return Array(7).fill(null).map(() => ({name:'', plan:'', actual:'', locked:false, superset:false}));
+}
+function normalizeExercises(exercises) {
+  const arr = Array.isArray(exercises) ? exercises : [];
+  const out = blankExercises();
+  for (let i = 0; i < Math.min(arr.length, 7); i++) {
+    const e = arr[i] || {};
+    out[i] = { name:e.name||'', plan:e.plan||'', actual:e.actual||'', locked:!!e.locked, superset:!!e.superset };
+  }
+  return out;
+}
+function safeDateFromKey(key) {
+  return new Date(baseSessionDate(key) + 'T00:00:00');
+}
+function sessionLabel(s) {
+  if (!s) return '';
+  if (s.workoutType === 'Class') {
+    const bits = [s.className || s.workoutName || 'Class'];
+    if (s.duration) bits.push(`${s.duration} min`);
+    if (s.instructor) bits.push(s.instructor);
+    return bits.join(' · ');
+  }
+  if (s.isRun && s.miles) return `${s.workoutName || 'Run'} · ${s.miles} mi${s.time ? ' @ '+calcPace(s.miles,s.time)+'/mi' : ''}`;
+  const count = getExerciseCount(s);
+  return `${s.workoutName || 'Custom'}${count ? ' · '+count+' exercise'+(count===1?'':'s') : ''}`;
+}
+function hasRunOnDate(dk, all = loadAll()) {
+  return sessionsForDateKey(dk, all).some(({session:s}) => s && (s.workoutType === 'Run' || s.isRun || s.stravaId));
+}
+
+function renderToday() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const isToday = isSameDay(currentDay, today);
+  const dayOfWeek = currentDay.getDay();
+  const dk = dateKey(currentDay);
+  const sessions = getSessionsForDate(dk);
+
+  document.getElementById('today-date-main').textContent = fmtDate(currentDay);
+  document.getElementById('today-date-sub').textContent = isToday ? 'Today' : (currentDay < today ? 'Past' : 'Future');
+
+  const schedType = DEFAULT_SCHED[dayOfWeek] || '';
+  let html = '';
+
+  if (sessions.length) {
+    html += `<div class="card session-list-card"><div class="card-header"><span class="card-title">LOGGED SESSIONS</span><span style="font-size:12px">${sessions.length}</span></div><div class="card-body">`;
+    sessions.forEach(({key, session:s}, idx) => {
+      html += `<div class="session-row">
+        <div class="session-row-title">
+          <span class="wtype-badge wtype-${esc(s.workoutType || 'Open')}">${esc(s.workoutType || '—')}</span>
+          <strong style="flex:1">${esc(sessionLabel(s))}</strong>
+          <button class="session-edit-btn" onclick="editFromHistory('${key}')">Edit</button><button class="session-edit-btn" onclick="deleteSessionFromToday('${key}')" style="color:#800000">Delete</button>
+        </div>
+        <div class="session-row-meta">Session ${idx+1}${s.rpe ? ' · RPE '+esc(s.rpe) : ''}${s.notes ? ' · notes saved' : ''}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  if (schedType) {
+    html += `<div style="padding:10px 16px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:12px;color:#444444">Scheduled:</span>
+      <span class="wtype-badge wtype-${esc(schedType)}">${esc(schedType)}</span>
+    </div>`;
+  }
+
+  html += `<div style="padding:0 16px 8px">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#444444;margin-bottom:8px;font-weight:600">${sessions.length ? 'Add another session' : 'Start a workout'}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">`;
+  WT_SESSION_TYPES.forEach(t => {
+    const active = (window._todayPickedType === t);
+    html += `<button class="type-tab${active?' active-'+(t==='Custom'?'Open':t):''}" onclick="startWorkoutPicker('${t}')">${t}</button>`;
+  });
+  html += `</div></div>`;
+
+  if (window._todayPickedType && !['Custom','Class'].includes(window._todayPickedType)) {
+    const type = window._todayPickedType;
+    const list = type === 'Run' ? [WORKOUTS.Run] : (WORKOUTS[type] || []);
+    html += `<div class="card"><div class="card-body">
+      <div style="font-size:11px;color:#444444;margin-bottom:8px">Choose ${type} workout</div>
+      <div style="display:flex;flex-direction:column;gap:6px">`;
+    html += `<button class="workout-chip" onclick="loadWorkout('${type}','Custom ${type}')"><div class="chip-name">✎ Custom ${type}</div><div class="chip-type">Freestyle blank log, categorized as ${type}</div></button>`;
+    list.forEach(w => {
+      const wname = w.name;
+      html += `<button class="workout-chip" onclick="loadWorkout('${type}','${String(wname).replace(/'/g,"\\'")}')"><div class="chip-name">${esc(wname)}</div><div class="chip-type">${esc(typeof w.desc === 'function' ? w.desc() : w.desc)}</div></button>`;
+    });
+    html += `</div></div></div>`;
+  }
+
+  if (activeSession && isSameDay(new Date(activeSession.date + 'T00:00:00'), currentDay)) {
+    html += `<div class="card session-list-card"><div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <div><div style="font-size:13px;color:#800000;font-weight:bold">▶ SESSION ACTIVE</div><div style="font-weight:700;margin-top:2px">${esc(activeSession.workoutName || activeSession.workoutType)}</div></div>
+      <button class="session-edit-btn" onclick="show('log')">Log →</button>
+    </div></div>`;
+  }
+
+  document.getElementById('today-content').innerHTML = html;
+}
+
+function startWorkoutPicker(type) {
+  window._todayPickedType = type;
+  if (type === 'Custom') loadWorkout('Custom', 'Custom Workout');
+  else if (type === 'Class') loadWorkout('Class', 'Class');
+  else renderToday();
+}
+
+function loadWorkout(type, name) {
+  window._todayPickedType = null;
+  let workout = null;
+  if (type === 'Run') workout = WORKOUTS.Run;
+  else if (!['Custom','Class'].includes(type)) workout = (WORKOUTS[type] || []).find(w => w.name === name);
+
+  if (type === 'Class') {
+    activeSession = {
+      date: dateKey(currentDay), workoutType:'Class', workoutName:'Class', isCustom:true, isClass:true,
+      className:'', instructor:'', duration:'', notes:'', sleep:'', readiness:'', soreness:'', knee:'', hamstring:'', rpe:'',
+      exercises: blankExercises(), isRun:false
+    };
+    show('log');
+    return;
+  }
+
+  const exercises = [];
+  if (workout && workout.exercises) {
+    workout.exercises.forEach((fn, i) => {
+      if (fn) exercises.push({ name: '', plan: fn(), actual: '', locked: false, superset: /\bSS\b|SS↕|Superset/i.test(String(fn())) });
+    });
+  } else {
+    for (let i = 0; i < 7; i++) exercises.push({ name: '', plan: '', actual: '', locked: false, superset:false });
+  }
+  while (exercises.length < 7) exercises.push({ name:'', plan:'', actual:'', locked:false, superset:false });
+
+  const isRun = (type === 'Intervals' || type === 'Sprint' || type === 'Run' || type === 'Basketball');
+  const isCustomFreeStyle = (type === 'Custom' || name === 'Custom ' + type);
+  activeSession = {
+    date: dateKey(currentDay), workoutType: type, workoutName: name, isCustom: isCustomFreeStyle,
+    warmup: workout ? workout.warmup : '', jumps: workout ? (workout.jumps || '') : '', exercises,
+    abs: workout ? (workout.abs || '') : '', isRun: isRun || type === 'Run',
+    runPlan: workout && workout.run ? workout.run() : '', targetPace: workout ? (workout.targetPace || '') : '',
+    miles:'', time:'', sleep:'', soreness:'', knee:'', hamstring:'', readiness:'', rpe:'', notes:''
+  };
+  show('log');
+}
+
+function editSession() {
+  const sessions = getSessionsForDate(currentDay);
+  if (sessions.length) { activeSession = sessions[0].session; show('log'); }
+}
+
+function renderClassLog(s) {
+  const d = new Date(s.date + 'T00:00:00');
+  let html = `<div style="padding:10px 16px;display:flex;align-items:center;gap:10px">
+    <span class="wtype-badge wtype-Class">Class</span>
+    <span style="font-size:13px;font-weight:600">${esc(s.className || 'Class')}</span>
+    <span style="font-size:11px;color:#444444;margin-left:auto">${fmtDate(d)}</span>
+  </div>
+  <div class="card"><div class="card-header"><span class="card-title">CLASS DETAILS</span></div><div class="card-body">
+    <div class="class-grid">
+      <div><label class="class-field-label">Class name</label><input class="class-input" id="class-name" value="${esc(s.className||'')}" placeholder="Yoga, boxing, spin…"></div>
+      <div><label class="class-field-label">Instructor</label><input class="class-input" id="class-instructor" value="${esc(s.instructor||'')}" placeholder="Optional"></div>
+      <div><label class="class-field-label">Duration (min)</label><input class="class-input" id="class-duration" type="number" step="1" value="${esc(s.duration||'')}" placeholder="45"></div>
+      <div><label class="class-field-label">Intensity/RPE</label><input class="class-input" id="sc-rpe" type="number" min="1" max="10" value="${esc(s.rpe||'')}" placeholder="—"></div>
+    </div>
+  </div></div>`;
+  html += renderCheckinsAndNotes(s, true);
+  html += `<button class="btn-primary" onclick="saveSession()">SAVE CLASS</button><button class="btn-secondary" onclick="clearSession()">Discard Session</button><div style="height:20px"></div>`;
+  return html;
+}
+
+function renderCheckinsAndNotes(s, skipRpe=false) {
+  return `<div class="log-section-title">CHECK-INS</div>
+  <div class="scores-grid">
+    <div class="score-item"><label>Sleep (hrs)</label><input class="score-input" type="number" id="sc-sleep" step=".5" min="0" max="12" value="${esc(s.sleep||'')}" placeholder="—"></div>
+    <div class="score-item"><label>Readiness (1-10)</label><input class="score-input" type="number" id="sc-readiness" min="1" max="10" value="${esc(s.readiness||'')}" placeholder="—"></div>
+    <div class="score-item"><label>Soreness (0-10)</label><input class="score-input" type="number" id="sc-soreness" min="0" max="10" value="${esc(s.soreness||'')}" placeholder="—"></div>
+    <div class="score-item"><label>Knee (0-10)</label><input class="score-input" type="number" id="sc-knee" min="0" max="10" value="${esc(s.knee||'')}" placeholder="—"></div>
+    <div class="score-item"><label>Hamstring (0-10)</label><input class="score-input" type="number" id="sc-hamstring" min="0" max="10" value="${esc(s.hamstring||'')}" placeholder="—"></div>
+    ${skipRpe ? '' : `<div class="score-item"><label>Session RPE (1-10)</label><input class="score-input" type="number" id="sc-rpe" min="1" max="10" value="${esc(s.rpe||'')}" placeholder="—"></div>`}
+  </div>
+  <div style="padding:0 16px 10px"><label class="field-label">Notes</label><textarea class="notes-input" id="sc-notes" rows="3" placeholder="Anything worth remembering…">${esc(s.notes||'')}</textarea></div>`;
+}
+
+function renderLog() {
+  const logSub = document.getElementById('log-sub');
+  if (!activeSession) {
+    document.getElementById('log-content').innerHTML = `<div class="empty-state"><div class="empty-icon">✏️</div><div class="empty-title">No active session</div><div class="empty-sub">Go to Today and start a session.</div></div><button class="btn-primary" onclick="show('today')">GO TO TODAY</button>`;
+    logSub.textContent = 'No session active';
+    return;
+  }
+  const s = activeSession;
+  if (s.workoutType === 'Class' || s.isClass) {
+    logSub.textContent = 'Class session';
+    document.getElementById('log-content').innerHTML = renderClassLog(s);
+    return;
+  }
+
+  const withLyd = s.withLydia || false;
+  logSub.textContent = `${s.workoutType} — ${s.workoutName}`;
+  const d = new Date(s.date + 'T00:00:00');
+  let html = `<div style="padding:10px 16px;display:flex;align-items:center;gap:10px"><span class="wtype-badge wtype-${esc(s.workoutType)}">${esc(s.workoutType)}</span><span style="font-size:13px;font-weight:600">${esc(s.workoutName)}</span><span style="font-size:11px;color:#444444;margin-left:auto">${fmtDate(d)}</span></div>`;
+
+  if (s.warmup !== undefined) html += `<div class="log-section-title">WARMUP</div><div class="exercise-block"><div class="ex-body"><div class="plan-field editable" contenteditable="true" id="warmup-plan" style="min-height:40px">${esc(s.warmup)}</div><label class="field-label">Actual</label><textarea class="actual-input" id="warmup-actual" rows="2" placeholder="What you did…">${esc(s.warmupActual||'')}</textarea></div></div>`;
+  if (s.jumps !== undefined) html += `<div class="log-section-title">JUMPS / PLYOS</div><div class="exercise-block"><div class="ex-body"><div class="plan-field editable" contenteditable="true" id="jumps-plan" style="min-height:40px">${esc(s.jumps)}</div><label class="field-label">Actual</label><textarea class="actual-input" id="jumps-actual" rows="2" placeholder="What you did…">${esc(s.jumpsActual||'')}</textarea></div></div>`;
+
+  html += `<div class="log-section-title">EXERCISES</div>`;
+  s.exercises = normalizeExercises(s.exercises);
+  for (let i = 0; i < 7; i++) {
+    const ex = s.exercises[i];
+    const locked = ex.locked;
+    const ss = !!ex.superset;
+    const lydEx = withLyd ? ((s.lydExercises && s.lydExercises[i]) || {actual:''}) : null;
+    const lydActualField = withLyd ? `<label class="field-label" style="color:#00006B;margin-top:6px;font-weight:bold">Lyd</label><textarea class="actual-input" id="lyd-actual-${i}" rows="2" placeholder="Lyd sets x reps @ weight..." style="border-color:rgba(91,155,213,.4);background:rgba(91,155,213,.06)" onchange="syncLyd(${i},this.value)">${esc(lydEx ? lydEx.actual : '')}</textarea>` : '';
+    html += `<div class="exercise-block${locked?' locked':''}${ss?' superset-on':''}" id="ex-block-${i}"><div class="ex-header"><div class="ex-num">${i+1}</div>${ss?'<span class="ss-badge">SS</span>':''}<input class="ex-name-input" id="ex-name-${i}" type="text" placeholder="Exercise name..." value="${esc(ex.name)}" ${locked?'disabled':''} onchange="syncEx(${i},'name',this.value)"><button class="ss-toggle${ss?' active':''}" onclick="toggleSuperset(${i})" title="Superset with next exercise">SS</button><button class="lock-btn" onclick="toggleLock(${i})" title="${locked?'Unlock':'Lock in'}">${locked?'&#10003;':'&rarr;'}</button></div><div class="ex-body"><label class="field-label">Plan</label><div class="plan-field${s.isCustom?' editable':''}" id="ex-plan-${i}" ${s.isCustom?'contenteditable="true" onblur="syncEx('+i+',\'plan\',this.innerText)"':''}>${esc(ex.plan)}</div><label class="field-label">Tyler</label><textarea class="actual-input" id="ex-actual-${i}" rows="2" placeholder="Sets x reps @ weight..." ${locked?'disabled':''} onchange="syncEx(${i},'actual',this.value)">${esc(ex.actual)}</textarea>${lydActualField}</div></div>`;
+  }
+
+  html += `<div class="lyd-toggle-row ${withLyd?'active':''}" onclick="toggleLydia()"><div class="lyd-checkbox">${withLyd?'&#10003;':''}</div><span>With Lyd</span><span style="font-size:12px;opacity:.7">— log her actuals too</span></div>`;
+
+  html += `<div class="log-section-title">ABS</div><div class="exercise-block"><div class="ex-body"><label class="field-label">Plan</label><div class="plan-field${s.isCustom?' editable':''}" id="abs-plan" ${s.isCustom?'contenteditable="true"':''}>${esc(s.abs||'')}</div><label class="field-label">Tyler</label><textarea class="actual-input" id="abs-actual" rows="2" placeholder="What you did…">${esc(s.absActual||'')}</textarea>${withLyd ? `<label class="field-label" style="color:#00006B;margin-top:6px;font-weight:bold">Lyd</label><textarea class="actual-input" id="lyd-abs-actual" rows="1" style="border-color:rgba(91,155,213,.4);background:rgba(91,155,213,.06)" placeholder="Lyd abs…">${esc(s.lydAbsActual||'')}</textarea>` : ''}</div></div>`;
+
+  if (s.isRun || s.runPlan) {
+    html += `<div class="log-section-title">RUN</div><div class="card"><div class="card-body">${s.runPlan ? `<div style="font-size:13px;color:#005050;margin-bottom:10px;line-height:1.5;font-family:'Share Tech Mono',monospace">${esc(s.runPlan)}</div>` : ''}${s.targetPace ? `<div style="font-size:11px;color:#444444;margin-bottom:10px">🎯 ${esc(s.targetPace)}</div>` : ''}<div style="font-size:11px;font-weight:700;color:#444444;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">Tyler</div><div class="run-grid"><div><label class="field-label">Miles</label><input type="number" class="run-field" id="run-miles" step=".01" placeholder="0.0" value="${esc(s.miles||'')}"></div><div><label class="field-label">Time (min)</label><input type="number" class="run-field" id="run-time" step=".1" placeholder="0" value="${esc(s.time||'')}"></div><div><label class="field-label">Pace</label><div class="run-field" id="run-pace" style="font-size:13px;padding:10px">${calcPace(s.miles, s.time)}</div></div></div></div></div>`;
+  }
+
+  html += renderCheckinsAndNotes(s, false);
+  html += `<button class="btn-primary" onclick="saveSession()">SAVE WORKOUT</button><button class="btn-secondary" onclick="clearSession()">Discard Session</button><div style="height:20px"></div>`;
+  document.getElementById('log-content').innerHTML = html;
+  if (s.isRun || s.runPlan) ['run-miles','run-time'].forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('input', updatePaceDisplay); });
+}
+
+function toggleSuperset(i) {
+  if (!activeSession) return;
+  collectFormData();
+  if (!activeSession.exercises[i]) activeSession.exercises[i] = {name:'',plan:'',actual:'',locked:false,superset:false};
+  activeSession.exercises[i].superset = !activeSession.exercises[i].superset;
+  renderLog();
+}
+
+function collectFormData() {
+  if (!activeSession) return;
+  const s = activeSession;
+  if (s.workoutType === 'Class' || s.isClass) {
+    s.className = document.getElementById('class-name')?.value || '';
+    s.instructor = document.getElementById('class-instructor')?.value || '';
+    s.duration = document.getElementById('class-duration')?.value || '';
+    s.workoutName = s.className || 'Class';
+    s.isClass = true;
+  }
+  const warmupPlan = document.getElementById('warmup-plan');
+  const warmupActual = document.getElementById('warmup-actual');
+  if (warmupPlan) s.warmup = warmupPlan.innerText || warmupPlan.textContent;
+  if (warmupActual) s.warmupActual = warmupActual.value;
+  const jumpsPlan = document.getElementById('jumps-plan');
+  const jumpsActual = document.getElementById('jumps-actual');
+  if (jumpsPlan) s.jumps = jumpsPlan.innerText || jumpsPlan.textContent;
+  if (jumpsActual) s.jumpsActual = jumpsActual.value;
+  s.exercises = normalizeExercises(s.exercises);
+  for (let i = 0; i < 7; i++) {
+    const nameEl = document.getElementById(`ex-name-${i}`);
+    const actualEl = document.getElementById(`ex-actual-${i}`);
+    const planEl = document.getElementById(`ex-plan-${i}`);
+    if (nameEl) s.exercises[i].name = nameEl.value;
+    if (actualEl) s.exercises[i].actual = actualEl.value;
+    if (planEl && s.isCustom) s.exercises[i].plan = planEl.innerText || planEl.textContent;
+  }
+  const absActual = document.getElementById('abs-actual');
+  const absPlan = document.getElementById('abs-plan');
+  if (absActual) s.absActual = absActual.value;
+  if (absPlan && s.isCustom) s.abs = absPlan.innerText || absPlan.textContent;
+  s.miles = document.getElementById('run-miles')?.value || s.miles || '';
+  s.time  = document.getElementById('run-time')?.value || s.time || '';
+  if (s.withLydia) {
+    s.lydExercises = s.lydExercises || [];
+    for (let i=0;i<7;i++) {
+      const el = document.getElementById('lyd-actual-'+i);
+      if (!s.lydExercises[i]) s.lydExercises[i] = {actual:''};
+      if (el) s.lydExercises[i].actual = el.value;
+    }
+    const lydAbsEl = document.getElementById('lyd-abs-actual');
+    if (lydAbsEl) s.lydAbsActual = lydAbsEl.value;
+  }
+  s.sleep     = document.getElementById('sc-sleep')?.value || '';
+  s.readiness = document.getElementById('sc-readiness')?.value || '';
+  s.soreness  = document.getElementById('sc-soreness')?.value || '';
+  s.knee      = document.getElementById('sc-knee')?.value || '';
+  s.hamstring = document.getElementById('sc-hamstring')?.value || '';
+  s.rpe       = document.getElementById('sc-rpe')?.value || '';
+  s.notes     = document.getElementById('sc-notes')?.value || '';
+}
+
+function saveSession() {
+  collectFormData();
+  if (!activeSession) return;
+  const d = new Date(activeSession.date + 'T00:00:00');
+  const key = saveLog(d, activeSession);
+  activeSession._sessionKey = key;
+  if (activeSession.withLydia) {
+    const lydEntry = {
+      date: activeSession.date, _sessionKey: key,
+      workoutType: activeSession.workoutType, workoutName: activeSession.workoutName,
+      exercises: (activeSession.lydExercises || []).map((le, i) => ({
+        name: activeSession.exercises[i] ? activeSession.exercises[i].name : '',
+        plan: activeSession.exercises[i] ? activeSession.exercises[i].plan : '',
+        actual: le ? le.actual : '', locked: true,
+        superset: activeSession.exercises[i] ? !!activeSession.exercises[i].superset : false
+      })),
+      absActual: activeSession.lydAbsActual || '', rpe: activeSession.lydRpe || '', withTyler: true
+    };
+    saveLydLog(d, lydEntry);
+  }
+  toast('Workout saved!');
+  activeSession = null;
+  show('today');
+}
+
+function renderHistory() {
+  const all = historyView === 'lydia' ? loadLyd() : loadAll();
+  const entries = Object.entries(all).filter(([k,v]) => v && (v.workoutType || v.workoutName)).sort(([a],[b]) => {
+    const bd = baseSessionDate(b).localeCompare(baseSessionDate(a));
+    return bd || (sessionSortIndex(b)-sessionSortIndex(a));
+  });
+  document.getElementById('history-sub').textContent = `${entries.length} session${entries.length!==1?'s':''} logged`;
+  const toggleHtml = `<div style="display:flex;gap:8px;padding:10px 16px 0"><button onclick="historyView='tyler';renderHistory()" class="settings-btn" style="text-align:center">${historyView==='tyler'?'[Tyler]':'Tyler'}</button><button onclick="historyView='lydia';renderHistory()" class="settings-btn" style="text-align:center">${historyView==='lydia'?'[Lyd]':'Lyd'}</button></div>`;
+  if (!entries.length) { document.getElementById('history-content').innerHTML = toggleHtml + `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No sessions yet</div></div>`; return; }
+  let html = '';
+  entries.forEach(([key, s], idx) => {
+    const d = safeDateFromKey(key);
+    const filledExercises = normalizeExercises(s.exercises).filter(e => e && (e.name || e.actual || e.plan));
+    html += `<div class="history-entry${idx===0?' open':''}" id="hist-${key}"><div class="history-header" onclick="document.getElementById('hist-${key}').classList.toggle('open')"><div style="flex:1"><div class="history-date">${fmtDate(d)}${sessionSortIndex(key)>1?' · Session '+sessionSortIndex(key):''}</div><div class="history-name">${esc(sessionLabel(s))}${s.rpe?' · RPE '+esc(s.rpe):''}</div></div><span class="wtype-badge wtype-${esc(s.workoutType||'Open')}" style="font-size:9px">${esc(s.workoutType||'—')}</span></div><div class="history-body">`;
+    if (s.workoutType === 'Class') {
+      html += `<div class="history-ex"><div class="history-ex-name">Class</div><div class="history-ex-actual">${esc(s.className||s.workoutName||'Class')}${s.instructor?' · '+esc(s.instructor):''}${s.duration?' · '+esc(s.duration)+' min':''}</div></div>`;
+    }
+    if (s.warmupActual) html += `<div class="history-ex"><div class="history-ex-name">Warmup</div><div class="history-ex-actual">${esc(s.warmupActual)}</div></div>`;
+    filledExercises.forEach((ex, i) => {
+      html += `<div class="history-ex"><div class="history-ex-name">${ex.superset?'<span class="ss-badge">SS</span>':''}${esc(ex.name || `Exercise ${i+1}`)}</div>`;
+      if (ex.plan) html += `<div style="font-size:10px;color:#444444;margin-top:1px">Plan: ${esc(ex.plan.substring(0,100))}${ex.plan.length>100?'…':''}</div>`;
+      if (ex.actual) html += `<div class="history-ex-actual">${esc(ex.actual)}</div>`;
+      html += `</div>`;
+    });
+    if (s.absActual) html += `<div class="history-ex"><div class="history-ex-name">Abs</div><div class="history-ex-actual">${esc(s.absActual)}</div></div>`;
+    if (s.miles) html += `<div class="history-ex"><div class="history-ex-name">Run</div><div class="history-ex-actual">${esc(s.miles)} mi${s.time ? ' @ '+calcPace(s.miles,s.time)+'/mi' : ''}</div></div>`;
+    const scores = [s.rpe && `RPE ${s.rpe}`, s.sleep && `${s.sleep}h sleep`, s.readiness && `Readiness ${s.readiness}/10`].filter(Boolean);
+    if (scores.length) html += `<div style="font-size:11px;color:#444444;margin-top:6px;padding-top:6px;border-top:1px solid #808080">${scores.join(' · ')}</div>`;
+    if (s.notes) html += `<div style="font-size:11px;color:#444444;font-style:italic;margin-top:4px">📝 ${esc(s.notes)}</div>`;
+    if (historyView === 'tyler') html += `<button onclick="editFromHistory('${key}')" class="session-edit-btn" style="margin-top:6px">Edit</button>`;
+    html += `</div></div>`;
+  });
+  document.getElementById('history-content').innerHTML = toggleHtml + html;
+}
+function editFromHistory(key) {
+  const all = loadAll();
+  if (all[key]) {
+    activeSession = Object.assign({_sessionKey:key}, all[key]);
+    currentDay = safeDateFromKey(key);
+    show('log');
+  }
+}
+
+function renderWeek() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekEnd = addDays(currentWeekStart, 6);
+  document.getElementById('week-label').textContent = `${MONTH_NAMES[currentWeekStart.getMonth()]} ${currentWeekStart.getDate()} – ${MONTH_NAMES[weekEnd.getMonth()]} ${weekEnd.getDate()}`;
+  document.getElementById('week-sublabel').textContent = `${currentWeekStart.getFullYear()}`;
+  const schedule = loadSchedule();
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(currentWeekStart, i), dk = dateKey(d), isToday = isSameDay(d,today), dayOfWeek = d.getDay();
+    const defaultType = DEFAULT_SCHED[dayOfWeek] || 'Open';
+    const saved = schedule[dk] || {}, wtype = saved.type || defaultType, wname = saved.name || '';
+    const sessions = getSessionsForDate(dk);
+    html += `<div class="week-day${isToday?' today':''}" id="wk-${dk}"><div class="week-day-header" onclick="toggleWeekDay('${dk}')"><div class="day-name">${DAY_NAMES[dayOfWeek]}</div><div style="flex:1"><div style="font-size:13px;font-weight:600">${MONTH_NAMES[d.getMonth()]} ${d.getDate()}</div><div style="font-size:11px;color:#444444;margin-top:2px">${wname || wtype}${sessions.length ? ' ✓ '+sessions.length : ''}</div></div><span class="wtype-badge wtype-${esc(wtype)}" style="font-size:9px">${esc(wtype)}</span><span style="color:#444444;font-size:14px;margin-left:6px">›</span></div><div class="week-day-body"><div class="type-tabs">`;
+    ['Upper','Lower','Intervals','Sprint','Basketball','Run','Class','Open'].forEach(t => { html += `<button class="type-tab${wtype===t?' active-'+t:''}" onclick="setDayType('${dk}','${t}')">${t}</button>`; });
+    html += `</div>`;
+    const typeWorkouts = wtype === 'Run' ? [WORKOUTS.Run] : (['Open','Class'].includes(wtype) ? [] : (WORKOUTS[wtype] || []));
+    if (typeWorkouts.length) {
+      html += `<select class="name-select" id="wk-name-${dk}" onchange="setDayName('${dk}',this.value)"><option value="">— Choose workout —</option>`;
+      typeWorkouts.forEach(w => { html += `<option value="${esc(w.name)}"${wname===w.name?' selected':''}>${esc(w.name)}</option>`; });
+      html += `</select>`;
+    }
+    html += `<button class="apply-day-btn" onclick="applyDay('${dk}','${dk}')">${sessions.length ? 'Update First Plan' : 'Set Workout'}</button>${sessions.length ? `<div style="margin-top:6px;font-size:13px;color:#000080;font-family:'VT323',monospace">${sessions.length} session${sessions.length===1?'':'s'} logged</div>` : ''}</div></div>`;
+  }
+  document.getElementById('week-content').innerHTML = html;
+  renderMonthView(currentWeekStart);
+}
+
+function renderMonthView(anchorDate = currentWeekStart) {
+  const target = document.getElementById('month-content'); if (!target) return;
+  const schedule = loadSchedule();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekEnd = addDays(currentWeekStart, 6);
+  const monthDate = new Date(anchorDate.getFullYear(), anchorDate.getMonth(), 1);
+  const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+  const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth()+1, 0);
+  const startOffset = monthStart.getDay() === 0 ? -6 : 1 - monthStart.getDay();
+  const gridStart = addDays(monthStart, startOffset);
+  const endOffset = monthEnd.getDay() === 0 ? 0 : 7 - monthEnd.getDay();
+  const gridEnd = addDays(monthEnd, endOffset);
+  let html = `<div class="card month-card"><div class="card-header"><span class="card-title">MONTH VIEW</span><span style="font-size:12px">${MONTH_NAMES[monthDate.getMonth()]} ${monthDate.getFullYear()}</span></div><div class="card-body"><div class="month-grid-head"><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div></div><div class="month-grid">`;
+  for (let cursor = new Date(gridStart); cursor <= gridEnd; cursor = addDays(cursor,1)) {
+    const dk = dateKey(cursor), sessions = getSessionsForDate(dk), sched = schedule[dk] || null;
+    const inMonth = cursor.getMonth() === monthDate.getMonth(), isToday = isSameDay(cursor,today), inSelectedWeek = cursor >= currentWeekStart && cursor <= weekEnd;
+    const first = sessions[0]?.session || null;
+    const typeLabel = sessions.length > 1 ? `${sessions.length} sessions` : (first?.workoutType || sched?.type || '');
+    const summary = sessions.length > 1 ? sessions.map(x => x.session.workoutType || 'Open').join(' + ') : (first ? sessionLabel(first) : (sched?.name || sched?.type || ''));
+    const classes = ['month-cell', inMonth?'':'other-month', sessions.length?'has-log':'', isToday?'today':'', inSelectedWeek?'selected-week':''].filter(Boolean).join(' ');
+    html += `<button class="${classes}" onclick="goToDateFromMonth('${dk}')" title="${esc(dk)}${summary ? ' — '+esc(summary) : ''}"><div class="month-cell-top"><span class="month-day-num">${cursor.getDate()}</span>${sessions.length ? '<span class="month-log-dot"></span>' : ''}</div><div class="month-cell-type">${esc(typeLabel)}</div><div class="month-cell-summary">${esc(summary)}</div></button>`;
+  }
+  html += `</div><div class="month-legend"><div class="month-legend-item"><span class="month-legend-dot"></span> Logged workout</div><div class="month-legend-item"><span class="month-legend-box"></span> Today</div><div class="month-legend-item">Blue cells = selected week</div></div></div></div>`;
+  target.innerHTML = html;
+}
+
+async function syncStrava() {
+  const tokens = getStravaTokens();
+  if (!tokens || !tokens.refresh_token) { toast('Connect Strava first'); show('settings'); return; }
+  const btn = document.getElementById('btn-strava');
+  if (btn) { btn.textContent = 'Syncing...'; btn.disabled = true; }
+  try {
+    const token = await getValidStravaToken();
+    if (!token) { toast('Token refresh failed — reconnect Strava'); return; }
+    const res = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=30', { headers: { Authorization: 'Bearer ' + token } });
+    const acts = await res.json();
+    if (!Array.isArray(acts)) { toast('Strava: ' + (acts && acts.message ? acts.message : JSON.stringify(acts))); return; }
+    const logs = loadAll(); let synced = 0, skipped = 0;
+    acts.forEach(act => {
+      if (!['Run','Walk','Hike','VirtualRun'].includes(act.type)) return;
+      const d = new Date(act.start_date_local); const dk = d.toISOString().slice(0,10);
+      const existingSessions = sessionsForDateKey(dk, logs);
+      if (existingSessions.some(({session:s}) => String(s.stravaId || '') === String(act.id))) { skipped++; return; }
+      if (existingSessions.some(({session:s}) => s.workoutType === 'Run' || s.isRun)) { skipped++; return; }
+      const miles = (act.distance / 1609.34).toFixed(2);
+      const timeMin = (act.moving_time / 60).toFixed(1);
+      const pace = calcPace(miles, timeMin);
+      const key = nextSessionKey(dk, logs);
+      logs[key] = { date:dk, _sessionKey:key, workoutType:'Run', workoutName:act.name || 'Strava Run', isCustom:true, fromHistory:true, isRun:true,
+        miles, time:timeMin, exercises:blankExercises(), warmup:'', warmupActual:'', jumps:'', jumpsActual:'', abs:'', absActual:'', sleep:'', readiness:'', soreness:'', knee:'', hamstring:'', rpe:'', notes:`Strava: ${miles} mi @ ${pace}/mi (${timeMin} min)`, stravaId:act.id };
+      synced++;
+    });
+    saveAll(logs); toast(`Synced ${synced} Strava run(s)${skipped ? ' · skipped '+skipped+' duplicate/day run(s)' : ''}`); renderToday(); renderHistory(); updateStravaStatus();
+  } catch(e) { toast('Error: ' + e.message); }
+  if (btn) { btn.textContent = 'Sync Strava Runs'; btn.disabled = false; }
+}
+
+function exportCSV() {
+  const all = loadAll();
+  const startDefault = new Date(); startDefault.setMonth(startDefault.getMonth() - 3);
+  const startStr = startDefault.toISOString().slice(0,10), endStr = new Date().toISOString().slice(0,10);
+  const start = prompt('Export FROM date (YYYY-MM-DD):', startStr); if (start === null) return;
+  const end = prompt('Export TO date (YYYY-MM-DD):', endStr); if (end === null) return;
+  const headers = ['SessionKey','Date','WorkoutType','WorkoutName','IsRun','Miles','Time','RPE','Notes','ClassName','Instructor','Duration','Warmup','WarmupActual','Jumps','JumpsActual','Abs','AbsActual','Sleep','Readiness','Soreness','Knee','Hamstring','StravaId','ExercisesJSON'];
+  for (let i=1;i<=7;i++) headers.push('Exercise'+i+'Name','Exercise'+i+'Plan','Exercise'+i+'Actual','Exercise'+i+'Locked','Exercise'+i+'Superset');
+  const rows = [headers];
+  Object.entries(all).sort().forEach(([key,s]) => {
+    const dk = baseSessionDate(key); if (!s || dk < start || dk > end) return;
+    const exercises = normalizeExercises(s.exercises);
+    const row = [key, dk, s.workoutType||'', s.workoutName||'', s.isRun?'1':'0', s.miles||'', s.time||'', s.rpe||'', s.notes||'', s.className||'', s.instructor||'', s.duration||'', s.warmup||'', s.warmupActual||'', s.jumps||'', s.jumpsActual||'', s.abs||'', s.absActual||'', s.sleep||'', s.readiness||'', s.soreness||'', s.knee||'', s.hamstring||'', s.stravaId||'', JSON.stringify(exercises)];
+    exercises.forEach(e => row.push(e.name||'', e.plan||'', e.actual||'', e.locked?'1':'0', e.superset?'1':'0'));
+    rows.push(row);
+  });
+  if (rows.length === 1) { toast('No sessions found in that date range'); return; }
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `workouts_full_${start}_to_${end}.csv`; a.click(); URL.revokeObjectURL(url);
+  toast('Exported ' + (rows.length-1) + ' full session(s) ✓');
+}
+
+function importCSV() {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = '.csv';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const rows = parseCSV(ev.target.result); if (rows.length < 2) { toast('CSV appears empty'); return; }
+      const header = rows[0].map(h => String(h).trim().toLowerCase());
+      const idx = name => header.indexOf(name.toLowerCase());
+      const dateIdx = idx('date'); if (dateIdx === -1) { toast('CSV must have a Date column'); return; }
+      const all = loadAll(); let added=0, skipped=0;
+      for (let r=1;r<rows.length;r++) {
+        const cols = rows[r]; const get = name => { const i=idx(name); return i>=0 ? (cols[i] || '') : ''; };
+        const dk = cols[dateIdx] || ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(dk)) { skipped++; continue; }
+        let key = get('SessionKey'); if (!key || baseSessionDate(key) !== dk || all[key]) key = nextSessionKey(dk, all);
+        let exercises = blankExercises(); const exJson = get('ExercisesJSON');
+        if (exJson) { try { exercises = normalizeExercises(JSON.parse(exJson)); } catch(e) {} }
+        for (let i=1;i<=7;i++) {
+          const nm=get('Exercise'+i+'Name'), pl=get('Exercise'+i+'Plan'), ac=get('Exercise'+i+'Actual'), lk=get('Exercise'+i+'Locked'), ss=get('Exercise'+i+'Superset');
+          if (nm||pl||ac||lk||ss) exercises[i-1] = { name:nm, plan:pl, actual:ac, locked:lk==='1'||lk.toLowerCase()==='true', superset:ss==='1'||ss.toLowerCase()==='true' };
+        }
+        const miles=get('Miles'), isRunVal=get('IsRun');
+        const isRun = isRunVal==='1'||isRunVal.toLowerCase()==='true'||parseFloat(miles)>0;
+        all[key] = { _sessionKey:key, date:dk, workoutType:get('WorkoutType')||'Open', workoutName:get('WorkoutName')||'Imported', isCustom:true, fromHistory:true, className:get('ClassName'), instructor:get('Instructor'), duration:get('Duration'), warmup:get('Warmup'), warmupActual:get('WarmupActual'), jumps:get('Jumps'), jumpsActual:get('JumpsActual'), exercises, abs:get('Abs'), absActual:get('AbsActual'), isRun, miles, time:get('Time'), rpe:get('RPE'), notes:get('Notes'), sleep:get('Sleep'), readiness:get('Readiness'), soreness:get('Soreness'), knee:get('Knee'), hamstring:get('Hamstring'), stravaId:get('StravaId') };
+        added++;
+      }
+      saveAll(all); renderToday(); renderHistory(); toast(`Imported ${added} session${added!==1?'s':''}${skipped?' ('+skipped+' skipped)':''} ✓`);
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+
+// ── FINAL OVERRIDES: discard/delete sessions + Strava same-run duplicate detection ──
+function removeSessionByKey(key) {
+  if (!key) return false;
+  const all = loadAll();
+  const lyd = loadLyd();
+  let removed = false;
+  if (all[key]) { delete all[key]; removed = true; }
+  if (lyd[key]) { delete lyd[key]; }
+  saveAll(all);
+  saveLyd(lyd);
+  return removed;
+}
+
+function deleteSessionFromToday(key) {
+  if (!confirm('Delete this saved session permanently? This cannot be undone.')) return;
+  if (removeSessionByKey(key)) toast('Session deleted');
+  renderToday();
+  renderHistory();
+}
+
+function clearSession() {
+  if (!activeSession) { show('today'); return; }
+  const key = activeSession._sessionKey || activeSession.sessionKey || '';
+  const all = loadAll();
+  const isSavedSession = key && !!all[key];
+
+  if (isSavedSession) {
+    if (!confirm('Delete this saved session permanently? This cannot be undone.')) return;
+    removeSessionByKey(key);
+    toast('Session deleted');
+  } else {
+    if (!confirm('Discard this unsaved session?')) return;
+    toast('Unsaved session discarded');
+  }
+
+  activeSession = null;
+  show('today');
+  renderToday();
+  renderHistory();
+}
+
+function toNum(v) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function runPaceMinutes(miles, minutes) {
+  const mi = toNum(miles), min = toNum(minutes);
+  if (!mi || !min) return null;
+  return min / mi;
+}
+
+function isRunLikeSession(s) {
+  return !!(s && (s.workoutType === 'Run' || s.isRun || s.stravaId));
+}
+
+function isLikelySameStravaRun(session, act) {
+  if (!session || !act || !isRunLikeSession(session)) return false;
+  if (String(session.stravaId || '') && String(session.stravaId || '') === String(act.id || '')) return true;
+
+  const actMiles = act.distance != null ? act.distance / 1609.34 : null;
+  const actMinutes = act.moving_time != null ? act.moving_time / 60 : null;
+  const sessionMiles = toNum(session.miles);
+  const sessionMinutes = toNum(session.time);
+
+  if (!actMiles || !actMinutes || !sessionMiles || !sessionMinutes) return false;
+
+  const distanceDiff = Math.abs(sessionMiles - actMiles);
+  const timeDiff = Math.abs(sessionMinutes - actMinutes);
+  const paceDiff = Math.abs(runPaceMinutes(sessionMiles, sessionMinutes) - runPaceMinutes(actMiles, actMinutes));
+
+  // Tolerant enough for Strava/manual rounding, strict enough to allow two real same-day runs.
+  const sameDistance = distanceDiff <= 0.03;   // ~160 ft
+  const sameTime = timeDiff <= 0.35;           // ~21 sec
+  const samePace = paceDiff <= 0.10;           // 6 sec / mile
+
+  return sameDistance && (sameTime || samePace);
+}
+
+async function syncStrava() {
+  const tokens = getStravaTokens();
+  if (!tokens || !tokens.refresh_token) { toast('Connect Strava first'); show('settings'); return; }
+  const btn = document.getElementById('btn-strava');
+  if (btn) { btn.textContent = 'Syncing...'; btn.disabled = true; }
+  try {
+    const token = await getValidStravaToken();
+    if (!token) { toast('Token refresh failed — reconnect Strava'); return; }
+    const res = await fetch('https://www.strava.com/api/v3/athlete/activities?per_page=30', { headers: { Authorization: 'Bearer ' + token } });
+    const acts = await res.json();
+    if (!Array.isArray(acts)) { toast('Strava: ' + (acts && acts.message ? acts.message : JSON.stringify(acts))); return; }
+    const logs = loadAll(); let synced = 0, skipped = 0;
+    acts.forEach(act => {
+      if (!['Run','Walk','Hike','VirtualRun'].includes(act.type)) return;
+      const d = new Date(act.start_date_local); const dk = d.toISOString().slice(0,10);
+      const existingSessions = sessionsForDateKey(dk, logs);
+      if (existingSessions.some(({session:s}) => isLikelySameStravaRun(s, act))) { skipped++; return; }
+
+      const miles = (act.distance / 1609.34).toFixed(2);
+      const timeMin = (act.moving_time / 60).toFixed(1);
+      const pace = calcPace(miles, timeMin);
+      const key = nextSessionKey(dk, logs);
+      logs[key] = { date:dk, _sessionKey:key, workoutType:'Run', workoutName:act.name || 'Strava Run', isCustom:true, fromHistory:true, isRun:true,
+        miles, time:timeMin, exercises:blankExercises(), warmup:'', warmupActual:'', jumps:'', jumpsActual:'', abs:'', absActual:'', sleep:'', readiness:'', soreness:'', knee:'', hamstring:'', rpe:'', notes:`Strava: ${miles} mi @ ${pace}/mi (${timeMin} min)`, stravaId:act.id };
+      synced++;
+    });
+    saveAll(logs); toast(`Synced ${synced} Strava run(s)${skipped ? ' · skipped '+skipped+' duplicate run(s)' : ''}`); renderToday(); renderHistory(); updateStravaStatus();
+  } catch(e) { toast('Error: ' + e.message); }
+  if (btn) { btn.textContent = 'Sync Strava Runs'; btn.disabled = false; }
 }
 
 seedHistory();
