@@ -1111,6 +1111,143 @@ textarea.actual-input:disabled { background: var(--win-face); }
   border-bottom: 1px solid var(--win-hilight);
 }
 
+
+
+/* ── PRACTICE / MUSIC TAB ───────────────────────────────────────────────── */
+.practice-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: var(--win-face);
+  border-bottom: 1px solid var(--win-shadow);
+  position: sticky;
+  top: 28px;
+  z-index: 45;
+}
+.practice-tab {
+  flex: 1;
+  padding: 4px 6px;
+  border-top: 1px solid var(--win-hilight);
+  border-left: 1px solid var(--win-hilight);
+  border-right: 1px solid var(--win-dk-shadow);
+  border-bottom: 1px solid var(--win-dk-shadow);
+  background: var(--win-btn-face);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--win-text);
+  cursor: pointer;
+}
+.practice-tab.active {
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+  background: var(--win-face);
+}
+.practice-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; }
+.practice-type-btn {
+  padding: 8px;
+  border-top: 2px solid var(--win-hilight);
+  border-left: 2px solid var(--win-hilight);
+  border-right: 2px solid var(--win-dk-shadow);
+  border-bottom: 2px solid var(--win-dk-shadow);
+  background: var(--win-btn-face);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  cursor: pointer;
+  color: var(--win-text);
+}
+.practice-type-btn:active { border-color: var(--win-dk-shadow) var(--win-hilight) var(--win-hilight) var(--win-dk-shadow); }
+.practice-badge {
+  display: inline-block;
+  padding: 0 6px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  background: #008000;
+  color: #fff;
+  border: 1px solid #000;
+}
+.practice-timer-display {
+  font-family: var(--font-ui);
+  font-size: 56px;
+  color: #000;
+  line-height: 1;
+  text-align: center;
+  margin: 4px 0 10px;
+  letter-spacing: 2px;
+  border-top: 2px solid var(--win-dk-shadow);
+  border-left: 2px solid var(--win-dk-shadow);
+  border-right: 2px solid var(--win-hilight);
+  border-bottom: 2px solid var(--win-hilight);
+  background: #fff;
+  padding: 10px 0;
+}
+.practice-controls { display: flex; gap: 6px; }
+.practice-controls button {
+  flex: 1;
+  padding: 7px 6px;
+  border-top: 2px solid var(--win-hilight);
+  border-left: 2px solid var(--win-hilight);
+  border-right: 2px solid var(--win-dk-shadow);
+  border-bottom: 2px solid var(--win-dk-shadow);
+  background: var(--win-btn-face);
+  font-family: var(--font-ui);
+  font-size: 17px;
+  cursor: pointer;
+  color: var(--win-text);
+}
+.practice-controls button:active { border-color: var(--win-dk-shadow) var(--win-hilight) var(--win-hilight) var(--win-dk-shadow); }
+.practice-controls button.start { background:#008000;color:#fff; }
+.practice-controls button.stop { background:#800000;color:#fff; }
+.practice-field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 6px; }
+.practice-month-dot { width: 8px; height: 8px; border-radius: 50%; background: #008000; flex-shrink: 0; }
+.practice-history-notes { font-family: var(--font-mono); font-size: 12px; white-space: pre-wrap; color:#000; margin-top:4px; }
+
+/* ── PRACTICE PICKER / METRONOME UPDATES ───────────────────────────────── */
+.practice-add-panel {
+  padding: 0 16px 8px;
+}
+.practice-add-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #444444;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.practice-picker-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.practice-time-input {
+  width: 100%;
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+  background: #fff;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  text-align: center;
+  padding: 4px;
+  color: #000;
+}
+.practice-time-input:focus { outline: 1px dotted var(--accent); }
+.metronome-beat-display {
+  font-family: var(--font-ui);
+  font-size: 28px;
+  text-align: center;
+  color: #000;
+  background: #fff;
+  border-top: 1px solid var(--win-dk-shadow);
+  border-left: 1px solid var(--win-dk-shadow);
+  border-right: 1px solid var(--win-hilight);
+  border-bottom: 1px solid var(--win-hilight);
+  padding: 6px;
+  margin: 2px 6px 8px;
+}
+
 </style>
 </head>
 <body>
@@ -1249,6 +1386,23 @@ textarea.actual-input:disabled { background: var(--win-face); }
   </div>
 
   <div style="height:20px"></div>
+</div>
+
+
+
+<!-- ── GUITAR / PRACTICE ─────────────────────────────────────────────────── -->
+<div id="page-practice" class="page">
+  <div class="page-header">
+    <div class="page-title">GUITAR PRACTICE</div>
+    <div class="page-sub" id="practice-sub">Today / Log / Month / History</div>
+  </div>
+  <div class="practice-tabs">
+    <button id="practice-tab-today" class="practice-tab active" onclick="setPracticeTab('today')">Today</button>
+    <button id="practice-tab-log" class="practice-tab" onclick="setPracticeTab('log')">Log</button>
+    <button id="practice-tab-month" class="practice-tab" onclick="setPracticeTab('month')">Month</button>
+    <button id="practice-tab-history" class="practice-tab" onclick="setPracticeTab('history')">History</button>
+  </div>
+  <div id="practice-content"></div>
 </div>
 
 <!-- ── NAV ── -->
@@ -4673,6 +4827,442 @@ function clearSession() {
   renderHistory();
 }
 
+
+
+// ── PRACTICE / MUSIC TAB FINAL ADDITION ───────────────────────────────────
+const PRACTICE_STORE_KEY = 'wt_practice_logs_v1';
+const PRACTICE_TYPES = ['Eartraining','Guitar','Saxophone','Piano','Writing'];
+let practiceTab = 'today';
+let activePracticeSession = null;
+let practiceMonthAnchor = new Date();
+practiceMonthAnchor.setDate(1); practiceMonthAnchor.setHours(0,0,0,0);
+
+function loadPractice() {
+  try { return JSON.parse(localStorage.getItem(PRACTICE_STORE_KEY) || '{}') || {}; }
+  catch(e) { return {}; }
+}
+function savePractice(all) { localStorage.setItem(PRACTICE_STORE_KEY, JSON.stringify(all || {})); }
+function practiceBaseDate(key) { return String(key || '').split('__')[0]; }
+function practiceNextKey(dk, all) {
+  if (!all[dk]) return dk;
+  let n = 2;
+  while (all[dk + '__p' + n]) n++;
+  return dk + '__p' + n;
+}
+function normalizePracticeBlocks(blocks) {
+  const out = Array.isArray(blocks) ? blocks.slice(0,3) : [];
+  while (out.length < 3) out.push({title:'', notes:''});
+  return out.map(b => ({title: (b && b.title) || '', notes: (b && b.notes) || ''}));
+}
+function practiceSessionsForDate(dk) {
+  return Object.entries(loadPractice()).filter(([key,s]) => practiceBaseDate(key) === dk && s).sort();
+}
+function practiceLabel(s) { return (s && (s.practiceType || s.type)) || 'Practice'; }
+function practiceSummary(s) {
+  const parts = [];
+  if (s.durationSeconds) parts.push(formatPracticeTime(Number(s.durationSeconds) || 0));
+  if (s.productivity) parts.push('Productivity ' + s.productivity + '/10');
+  if (s.notes) parts.push('notes');
+  return parts.join(' · ') || 'practice logged';
+}
+function formatPracticeTime(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function parsePracticeTime(val) {
+  const raw = String(val || '').trim();
+  if (!raw) return 0;
+  if (/^\d+$/.test(raw)) return Number(raw) || 0;
+  const parts = raw.split(':').map(x => Number(x));
+  if (parts.some(x => Number.isNaN(x) || x < 0)) return 0;
+  if (parts.length === 3) return Math.floor(parts[0]*3600 + parts[1]*60 + parts[2]);
+  if (parts.length === 2) return Math.floor(parts[0]*60 + parts[1]);
+  return 0;
+}
+function currentPracticeTimerSeconds() {
+  return window.practiceTimerElapsed + (window.practiceTimerRunning ? Math.floor((Date.now() - window.practiceTimerStartedAt)/1000) : 0);
+}
+function setPracticeTab(tab) {
+  practiceTab = tab;
+  renderPractice();
+}
+function startPracticeSession(type) {
+  activePracticeSession = {
+    date: dateKey(currentDay),
+    practiceType: type,
+    warmup: '',
+    blocks: [{title:'Technique / Repertoire', notes:''},{title:'Focused Work', notes:''},{title:'Extra Work', notes:''}],
+    eartraining: '',
+    notes: '',
+    productivity: '',
+    durationSeconds: currentPracticeTimerSeconds(),
+    createdAt: new Date().toISOString()
+  };
+  practiceTab = 'log';
+  show('practice');
+}
+function editPracticeSession(key) {
+  const all = loadPractice();
+  if (!all[key]) return;
+  activePracticeSession = Object.assign({_sessionKey:key}, all[key]);
+  activePracticeSession.blocks = normalizePracticeBlocks(activePracticeSession.blocks);
+  currentDay = safeDateFromKey(practiceBaseDate(key));
+  practiceTab = 'log';
+  show('practice');
+}
+function deletePracticeSession(key) {
+  if (!confirm('Delete this practice session permanently? This cannot be undone.')) return;
+  const all = loadPractice();
+  if (all[key]) { delete all[key]; savePractice(all); toast('Practice session deleted'); }
+  renderPractice();
+}
+function collectPracticeForm() {
+  if (!activePracticeSession) return null;
+  const s = activePracticeSession;
+  s.practiceType = document.getElementById('practice-type')?.value || s.practiceType || 'Guitar';
+  s.warmup = document.getElementById('practice-warmup')?.value || '';
+  s.blocks = normalizePracticeBlocks(s.blocks);
+  for (let i=0;i<3;i++) {
+    s.blocks[i].title = document.getElementById('practice-block-title-'+i)?.value || '';
+    s.blocks[i].notes = document.getElementById('practice-block-notes-'+i)?.value || '';
+  }
+  s.eartraining = document.getElementById('practice-eartraining')?.value || '';
+  s.notes = document.getElementById('practice-notes')?.value || '';
+  s.productivity = document.getElementById('practice-productivity')?.value || '';
+  const durText = document.getElementById('practice-duration-hms')?.value || '';
+  s.durationSeconds = parsePracticeTime(durText);
+  return s;
+}
+function savePracticeSession() {
+  const s = collectPracticeForm();
+  if (!s) return;
+  const all = loadPractice();
+  const dk = s.date || dateKey(currentDay);
+  let key = s._sessionKey || '';
+  if (!key || practiceBaseDate(key) !== dk || (all[key] && all[key]._sessionKey !== s._sessionKey)) key = practiceNextKey(dk, all);
+  s._sessionKey = key;
+  all[key] = s;
+  savePractice(all);
+  activePracticeSession = null;
+  practiceTab = 'today';
+  toast('Practice session saved');
+  show('practice');
+}
+function discardPracticeSession() {
+  if (!activePracticeSession) { practiceTab = 'today'; renderPractice(); return; }
+  const key = activePracticeSession._sessionKey || '';
+  if (key && loadPractice()[key]) {
+    if (!confirm('Delete this saved practice session?')) return;
+    const all = loadPractice(); delete all[key]; savePractice(all); toast('Practice session deleted');
+  } else {
+    if (!confirm('Discard this unsaved practice session?')) return;
+    toast('Unsaved practice discarded');
+  }
+  activePracticeSession = null;
+  practiceTab = 'today';
+  renderPractice();
+}
+
+// Separate practice stopwatch
+window.practiceTimerElapsed = window.practiceTimerElapsed || 0;
+window.practiceTimerRunning = false;
+window.practiceTimerStartedAt = 0;
+window.practiceTimerInterval = null;
+function practiceTimerText() {
+  return formatPracticeTime(currentPracticeTimerSeconds());
+}
+function updatePracticeTimerDisplay() {
+  const el = document.getElementById('practice-timer-display');
+  if (el) el.textContent = practiceTimerText();
+}
+function practiceTimerToggle() {
+  if (window.practiceTimerRunning) {
+    window.practiceTimerElapsed += Math.floor((Date.now() - window.practiceTimerStartedAt)/1000);
+    window.practiceTimerRunning = false;
+    clearInterval(window.practiceTimerInterval);
+  } else {
+    window.practiceTimerStartedAt = Date.now();
+    window.practiceTimerRunning = true;
+    window.practiceTimerInterval = setInterval(updatePracticeTimerDisplay, 250);
+  }
+  updatePracticeTimerDisplay();
+  renderPracticeToday();
+}
+function practiceTimerReset() {
+  if (!confirm('Reset the practice timer?')) return;
+  window.practiceTimerElapsed = 0; window.practiceTimerRunning = false;
+  clearInterval(window.practiceTimerInterval);
+  updatePracticeTimerDisplay();
+  renderPracticeToday();
+}
+function applyTimerToPracticeLog() {
+  const elapsed = currentPracticeTimerSeconds();
+  const hms = document.getElementById('practice-duration-hms');
+  const hidden = document.getElementById('practice-duration-seconds');
+  if (hms) hms.value = formatPracticeTime(elapsed);
+  if (hidden) hidden.value = elapsed;
+  toast('Timer copied to session time');
+}
+
+// WebAudio metronome: works after user gesture because Start initializes AudioContext.
+let metroCtx = null, metroTimer = null, metroRunning = false, metroBeat = 0;
+let metroBpm = 80, metroBeatsPerMeasure = 4, metroNoteValue = 4;
+let metroAccentMode = 'downbeat';
+
+function metroStateFromControls() {
+  metroBpm = Math.max(30, Math.min(260, Number(document.getElementById('metro-bpm')?.value || metroBpm || 80)));
+  metroBeatsPerMeasure = Math.max(1, Math.min(12, Number(document.getElementById('metro-beats')?.value || metroBeatsPerMeasure || 4)));
+  metroNoteValue = Math.max(1, Math.min(16, Number(document.getElementById('metro-note')?.value || metroNoteValue || 4)));
+  metroAccentMode = document.getElementById('metro-accent-mode')?.value || metroAccentMode || 'downbeat';
+}
+function metroShouldAccent(beatInMeasure) {
+  if (metroAccentMode === 'none') return false;
+  if (metroAccentMode === 'all') return true;
+  if (metroAccentMode === 'backbeat') return beatInMeasure === 2 || beatInMeasure === 4;
+  return beatInMeasure === 1;
+}
+function metroClick(accent=false) {
+  try {
+    if (!metroCtx) metroCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (metroCtx.state === 'suspended') metroCtx.resume();
+    const osc = metroCtx.createOscillator();
+    const gain = metroCtx.createGain();
+    osc.type = accent ? 'square' : 'triangle';
+    osc.frequency.value = accent ? 1400 : 820;
+    gain.gain.setValueAtTime(0.0001, metroCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(accent ? 0.50 : 0.24, metroCtx.currentTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, metroCtx.currentTime + 0.060);
+    osc.connect(gain); gain.connect(metroCtx.destination);
+    osc.start(); osc.stop(metroCtx.currentTime + 0.065);
+  } catch(e) { console.log('Metronome audio error', e); }
+}
+function updateMetronomeDisplay() {
+  const el = document.getElementById('metro-beat-display');
+  if (el) el.textContent = metroRunning ? ('Beat ' + (((metroBeat - 1 + metroBeatsPerMeasure) % metroBeatsPerMeasure) + 1) + ' / ' + metroBeatsPerMeasure) : (metroBeatsPerMeasure + '/' + metroNoteValue + ' ready');
+}
+function metronomeTick() {
+  metroBeat += 1;
+  const beatInMeasure = ((metroBeat - 1) % metroBeatsPerMeasure) + 1;
+  metroClick(metroShouldAccent(beatInMeasure));
+  updateMetronomeDisplay();
+}
+function metronomeToggle() {
+  metroStateFromControls();
+  if (metroRunning) {
+    clearInterval(metroTimer); metroTimer = null; metroRunning = false;
+  } else {
+    metroRunning = true; metroBeat = 0;
+    metronomeTick();
+    metroTimer = setInterval(metronomeTick, 60000 / metroBpm);
+  }
+  renderPracticeToday();
+}
+function metronomeApplySettings() {
+  const wasRunning = metroRunning;
+  if (metroRunning) { clearInterval(metroTimer); metroTimer = null; metroRunning = false; }
+  metroStateFromControls();
+  if (wasRunning) { metroRunning = true; metroBeat = 0; metronomeTick(); metroTimer = setInterval(metronomeTick, 60000 / metroBpm); }
+  renderPracticeToday();
+}
+function metronomeTap(accent=true) { metroStateFromControls(); metroClick(accent); }
+
+function renderPractice() {
+  document.querySelectorAll('.practice-tab').forEach(b => b.classList.remove('active'));
+  const tabBtn = document.getElementById('practice-tab-' + practiceTab);
+  if (tabBtn) tabBtn.classList.add('active');
+  const sub = document.getElementById('practice-sub');
+  if (sub) sub.textContent = practiceTab.charAt(0).toUpperCase() + practiceTab.slice(1);
+  if (practiceTab === 'today') return renderPracticeToday();
+  if (practiceTab === 'log') return renderPracticeLog();
+  if (practiceTab === 'month') return renderPracticeMonth();
+  if (practiceTab === 'history') return renderPracticeHistory();
+}
+function renderPracticeToday() {
+  const content = document.getElementById('practice-content'); if (!content) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dk = dateKey(currentDay);
+  const sessions = practiceSessionsForDate(dk);
+  let html = `<div class="date-nav"><button class="date-nav-btn" onclick="shiftPracticeDay(-1)">‹</button><div class="date-display"><div class="date-main">${fmtDate(currentDay)}</div><div class="date-sub">${isSameDay(currentDay,today)?'Today':(currentDay<today?'Past':'Future')}</div></div><button class="date-nav-btn" onclick="shiftPracticeDay(1)">›</button><button class="today-btn" onclick="jumpPracticeToday()">TODAY</button></div>`;
+
+  html += `<div class="practice-add-panel">
+    <div class="practice-add-label">${sessions.length ? 'Add practice session' : 'Start practice session'}</div>
+    <div class="practice-picker-wrap">`;
+  PRACTICE_TYPES.forEach(t => {
+    html += `<button class="type-tab" onclick="startPracticeSession('${t}')">${t}</button>`;
+  });
+  html += `</div></div>`;
+
+  if (sessions.length) {
+    html += `<div class="card session-list-card"><div class="card-header"><span class="card-title">TODAY'S PRACTICE</span><span style="font-size:12px">${sessions.length}</span></div><div class="card-body">`;
+    sessions.forEach(([key,s], idx) => {
+      html += `<div class="session-row"><div class="session-row-title"><span class="practice-badge">${esc(practiceLabel(s))}</span><strong style="flex:1">Session ${idx+1}</strong><button class="session-edit-btn" onclick="editPracticeSession('${key}')">Edit</button><button class="session-edit-btn" onclick="deletePracticeSession('${key}')" style="color:#800000">Delete</button></div><div class="session-row-meta">${esc(practiceSummary(s))}</div></div>`;
+    });
+    html += `</div></div>`;
+  }
+
+  html += `<div class="card"><div class="card-header"><span class="card-title">PRACTICE TIMER</span></div><div class="card-body"><div id="practice-timer-display" class="practice-timer-display">${practiceTimerText()}</div><div class="practice-controls"><button id="practice-timer-toggle" class="${window.practiceTimerRunning?'stop':'start'}" onclick="practiceTimerToggle()">${window.practiceTimerRunning?'STOP':'START'}</button><button onclick="practiceTimerReset()">RESET</button></div></div></div>`;
+
+  html += `<div class="card"><div class="card-header"><span class="card-title">METRONOME</span><span style="font-size:12px">${metroRunning?'RUNNING':'READY'}</span></div><div class="card-body">
+    <div id="metro-beat-display" class="metronome-beat-display">${metroRunning ? 'Beat ' + (((metroBeat - 1 + metroBeatsPerMeasure) % metroBeatsPerMeasure) + 1) + ' / ' + metroBeatsPerMeasure : metroBeatsPerMeasure + '/' + metroNoteValue + ' ready'}</div>
+    <div class="practice-field-grid">
+      <div><label class="field-label">BPM</label><input id="metro-bpm" class="score-input" type="number" min="30" max="260" value="${metroBpm}" onchange="metronomeApplySettings()"></div>
+      <div><label class="field-label">Beats / measure</label><input id="metro-beats" class="score-input" type="number" min="1" max="12" value="${metroBeatsPerMeasure}" onchange="metronomeApplySettings()"></div>
+      <div><label class="field-label">Time signature bottom</label><select id="metro-note" class="name-select" onchange="metronomeApplySettings()"><option value="2" ${metroNoteValue===2?'selected':''}>2</option><option value="4" ${metroNoteValue===4?'selected':''}>4</option><option value="8" ${metroNoteValue===8?'selected':''}>8</option><option value="16" ${metroNoteValue===16?'selected':''}>16</option></select></div>
+      <div><label class="field-label">Click accents</label><select id="metro-accent-mode" class="name-select" onchange="metronomeApplySettings()"><option value="downbeat" ${metroAccentMode==='downbeat'?'selected':''}>Downbeat different</option><option value="backbeat" ${metroAccentMode==='backbeat'?'selected':''}>Backbeat different</option><option value="all" ${metroAccentMode==='all'?'selected':''}>All accented</option><option value="none" ${metroAccentMode==='none'?'selected':''}>No accents</option></select></div>
+    </div>
+    <div class="practice-controls"><button class="${metroRunning?'stop':'start'}" onclick="metronomeToggle()">${metroRunning?'STOP':'START'} METRONOME</button><button onclick="metronomeTap(true)">ACCENT CLICK</button><button onclick="metronomeTap(false)">NORMAL CLICK</button></div>
+  </div></div>`;
+  content.innerHTML = html;
+  updatePracticeTimerDisplay();
+  updateMetronomeDisplay();
+}
+
+function shiftPracticeDay(n) { currentDay = addDays(currentDay, n); renderPracticeToday(); }
+function jumpPracticeToday() { currentDay = new Date(); currentDay.setHours(0,0,0,0); renderPracticeToday(); }
+function renderPracticeLog() {
+  const content = document.getElementById('practice-content'); if (!content) return;
+  if (!activePracticeSession) {
+    content.innerHTML = `<div class="empty-state"><div class="empty-icon">♫</div><div class="empty-title">No active practice session</div><div class="empty-sub">Start Eartraining, Guitar, Saxophone, Piano, or Writing from Today.</div><button class="btn-primary" onclick="setPracticeTab('today')">GO TO TODAY</button></div>`;
+    return;
+  }
+  const s = activePracticeSession; s.blocks = normalizePracticeBlocks(s.blocks);
+  let html = `<div class="card"><div class="card-header"><span class="card-title">PRACTICE LOG</span><span class="practice-badge">${esc(s.practiceType)}</span></div><div class="card-body"><label class="field-label">Type</label><select id="practice-type" class="name-select">${PRACTICE_TYPES.map(t => `<option value="${t}" ${t===s.practiceType?'selected':''}>${t}</option>`).join('')}</select><div class="practice-field-grid"><div><label class="field-label">Session time (HH:MM:SS)</label><input id="practice-duration-hms" class="practice-time-input" type="text" inputmode="numeric" placeholder="00:00:00" value="${esc(formatPracticeTime(s.durationSeconds||0))}"><input id="practice-duration-seconds" type="hidden" value="${esc(s.durationSeconds||0)}"></div><div><label class="field-label">Timer</label><button class="settings-btn" style="text-align:center;margin:0;height:34px" onclick="applyTimerToPracticeLog()">COPY FROM TIMER</button></div></div></div></div>`;
+  html += `<div class="log-section-title">Warm-Up</div><div class="exercise-block"><div class="ex-body"><textarea id="practice-warmup" class="actual-input" style="min-height:70px" placeholder="Scales, finger warm-up, long tones, breathing, etc.">${esc(s.warmup||'')}</textarea></div></div>`;
+  for (let i=0;i<3;i++) {
+    html += `<div class="exercise-block"><div class="ex-header"><div class="ex-num">${i+1}</div><input id="practice-block-title-${i}" class="ex-name-input" value="${esc(s.blocks[i].title)}" placeholder="Practice block ${i+1}"></div><div class="ex-body"><textarea id="practice-block-notes-${i}" class="actual-input" style="min-height:76px" placeholder="What did you work on? Reps, tempo, songs, exercises, problem spots...">${esc(s.blocks[i].notes)}</textarea></div></div>`;
+  }
+  html += `<div class="log-section-title">Singing / Eartraining</div><div class="exercise-block"><div class="ex-body"><textarea id="practice-eartraining" class="actual-input" style="min-height:76px" placeholder="Intervals, solfege, transcription, singing, pitch matching...">${esc(s.eartraining||'')}</textarea></div></div>`;
+  html += `<div class="card"><div class="card-header"><span class="card-title">NOTES + PRODUCTIVITY</span></div><div class="card-body"><label class="field-label">Notes</label><textarea id="practice-notes" class="notes-input" style="min-height:80px" placeholder="General notes, breakthroughs, what to revisit next time...">${esc(s.notes||'')}</textarea><div style="margin-top:6px"><label class="field-label">Productivity (1-10)</label><input id="practice-productivity" class="score-input" type="number" min="1" max="10" value="${esc(s.productivity||'')}"></div></div></div>`;
+  html += `<button class="btn-primary" onclick="savePracticeSession()">SAVE PRACTICE</button><button class="btn-secondary" onclick="discardPracticeSession()">Discard Session</button><div style="height:20px"></div>`;
+  content.innerHTML = html;
+}
+function renderPracticeMonth() {
+  const content = document.getElementById('practice-content'); if (!content) return;
+  const year = practiceMonthAnchor.getFullYear(), month = practiceMonthAnchor.getMonth();
+  const first = new Date(year, month, 1); const start = new Date(first); start.setDate(first.getDate() - first.getDay());
+  const all = loadPractice(); const today = new Date(); today.setHours(0,0,0,0);
+  let html = `<div class="date-nav"><button class="date-nav-btn" onclick="shiftPracticeMonth(-1)">‹</button><div class="date-display"><div class="date-main">${practiceMonthAnchor.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</div><div class="date-sub">Practice sessions only</div></div><button class="date-nav-btn" onclick="shiftPracticeMonth(1)">›</button><button class="today-btn" onclick="jumpPracticeMonthToday()">THIS MONTH</button></div>`;
+  html += `<div class="card month-card"><div class="card-body"><div class="month-grid-head"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div><div class="month-grid">`;
+  for (let i=0;i<42;i++) {
+    const d = addDays(start, i); const dk = dateKey(d); const count = Object.keys(all).filter(k => practiceBaseDate(k) === dk).length;
+    html += `<button class="month-cell ${d.getMonth()!==month?'other-month':''} ${isSameDay(d,today)?'today':''} ${count?'has-log':''}" onclick="currentDay=safeDateFromKey('${dk}');practiceTab='today';renderPractice()"><div class="month-cell-top"><span class="month-day-num">${d.getDate()}</span>${count?'<span class="practice-month-dot"></span>':''}</div><div class="month-cell-type">${count?count+' practice session'+(count!==1?'s':''):''}</div></button>`;
+  }
+  html += `</div><div class="month-legend"><div class="month-legend-item"><span class="practice-month-dot"></span>Practice session logged</div></div></div></div>`;
+  content.innerHTML = html;
+}
+function shiftPracticeMonth(n) { practiceMonthAnchor.setMonth(practiceMonthAnchor.getMonth()+n); renderPracticeMonth(); }
+function jumpPracticeMonthToday() { practiceMonthAnchor = new Date(); practiceMonthAnchor.setDate(1); practiceMonthAnchor.setHours(0,0,0,0); renderPracticeMonth(); }
+function renderPracticeHistory() {
+  const content = document.getElementById('practice-content'); if (!content) return;
+  const entries = Object.entries(loadPractice()).sort((a,b) => b[0].localeCompare(a[0]));
+  if (!entries.length) { content.innerHTML = `<div class="empty-state"><div class="empty-icon">♫</div><div class="empty-title">No practice history yet</div><div class="empty-sub">Saved practice sessions will appear here.</div></div>`; return; }
+  let html = `<div style="padding:8px 6px">`;
+  entries.forEach(([key,s]) => {
+    const d = safeDateFromKey(practiceBaseDate(key));
+    const blocks = normalizePracticeBlocks(s.blocks).filter(b => b.title || b.notes);
+    html += `<div class="history-entry"><div class="history-header" onclick="this.parentElement.classList.toggle('open')"><span class="practice-badge">${esc(practiceLabel(s))}</span><div style="flex:1"><div class="history-date">${fmtDate(d)}</div><div class="history-name">${esc(practiceSummary(s))}</div></div><button class="session-edit-btn" onclick="event.stopPropagation();editPracticeSession('${key}')">Edit</button></div><div class="history-body">`;
+    if (s.warmup) html += `<div class="history-ex"><div class="history-ex-name">Warm-Up</div><div class="history-ex-actual">${esc(s.warmup)}</div></div>`;
+    blocks.forEach(b => { html += `<div class="history-ex"><div class="history-ex-name">${esc(b.title || 'Practice Block')}</div><div class="history-ex-actual">${esc(b.notes)}</div></div>`; });
+    if (s.eartraining) html += `<div class="history-ex"><div class="history-ex-name">Singing / Eartraining</div><div class="history-ex-actual">${esc(s.eartraining)}</div></div>`;
+    if (s.notes) html += `<div class="history-ex"><div class="history-ex-name">Notes</div><div class="practice-history-notes">${esc(s.notes)}</div></div>`;
+    html += `<button class="btn-secondary" onclick="deletePracticeSession('${key}')">Delete</button></div></div>`;
+  });
+  html += `</div>`; content.innerHTML = html;
+}
+
+// Override app navigation so Practice renders as a first-class tab.
+const _wtOriginalShow = show;
+show = function(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  const nav = document.getElementById('nav-' + name);
+  if (page) page.classList.add('active');
+  if (nav) nav.classList.add('active');
+  if (name === 'today') renderToday();
+  else if (name === 'log') renderLog();
+  else if (name === 'week') renderWeek();
+  else if (name === 'history') renderHistory();
+  else if (name === 'settings') renderSettings();
+  else if (name === 'practice') renderPractice();
+};
+
+// Override CSV export/import to include both workout rows and practice rows in one round-trippable CSV.
+exportCSV = function() {
+  const workouts = loadAll();
+  const practice = loadPractice();
+  const startDefault = new Date(); startDefault.setMonth(startDefault.getMonth() - 3);
+  const startStr = startDefault.toISOString().slice(0,10), endStr = new Date().toISOString().slice(0,10);
+  const start = prompt('Export FROM date (YYYY-MM-DD):', startStr); if (start === null) return;
+  const end = prompt('Export TO date (YYYY-MM-DD):', endStr); if (end === null) return;
+  const headers = ['RecordType','SessionKey','Date','WorkoutType','WorkoutName','PracticeType','IsRun','Miles','Time','DurationSeconds','RPE','Productivity','Notes','ClassName','Instructor','Duration','Warmup','WarmupActual','Jumps','JumpsActual','Abs','AbsActual','Eartraining','Sleep','Readiness','Soreness','Knee','Hamstring','StravaId','ExercisesJSON','PracticeBlocksJSON'];
+  for (let i=1;i<=7;i++) headers.push('Exercise'+i+'Name','Exercise'+i+'Plan','Exercise'+i+'Actual','Exercise'+i+'Locked','Exercise'+i+'Superset');
+  const rows = [headers];
+  Object.entries(workouts).sort().forEach(([key,s]) => {
+    const dk = baseSessionDate(key); if (!s || dk < start || dk > end) return;
+    const exercises = normalizeExercises(s.exercises);
+    const row = ['WORKOUT', key, dk, s.workoutType||'', s.workoutName||'', '', s.isRun?'1':'0', s.miles||'', s.time||'', '', s.rpe||'', '', s.notes||'', s.className||'', s.instructor||'', s.duration||'', s.warmup||'', s.warmupActual||'', s.jumps||'', s.jumpsActual||'', s.abs||'', s.absActual||'', '', s.sleep||'', s.readiness||'', s.soreness||'', s.knee||'', s.hamstring||'', s.stravaId||'', JSON.stringify(exercises), ''];
+    exercises.forEach(e => row.push(e.name||'', e.plan||'', e.actual||'', e.locked?'1':'0', e.superset?'1':'0'));
+    rows.push(row);
+  });
+  Object.entries(practice).sort().forEach(([key,s]) => {
+    const dk = practiceBaseDate(key); if (!s || dk < start || dk > end) return;
+    const row = ['PRACTICE', key, dk, '', '', s.practiceType||'', '', '', '', s.durationSeconds||'', '', s.productivity||'', s.notes||'', '', '', '', s.warmup||'', '', '', '', '', '', s.eartraining||'', '', '', '', '', '', '', '', JSON.stringify(normalizePracticeBlocks(s.blocks))];
+    for (let i=1;i<=7;i++) row.push('', '', '', '', '');
+    rows.push(row);
+  });
+  if (rows.length === 1) { toast('No workout or practice sessions found in that date range'); return; }
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `train_export_${start}_to_${end}.csv`; a.click(); URL.revokeObjectURL(url);
+  toast('Exported ' + (rows.length-1) + ' total row(s) ✓');
+};
+
+importCSV = function() {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = '.csv';
+  input.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const rows = parseCSV(ev.target.result); if (rows.length < 2) { toast('CSV appears empty'); return; }
+      const header = rows[0].map(h => String(h).trim().toLowerCase());
+      const idx = name => header.indexOf(name.toLowerCase());
+      const dateIdx = idx('date'); if (dateIdx === -1) { toast('CSV must have a Date column'); return; }
+      const all = loadAll(); const practice = loadPractice();
+      let addedW=0, addedP=0, skipped=0;
+      for (let r=1;r<rows.length;r++) {
+        const cols = rows[r]; const get = name => { const i=idx(name); return i>=0 ? (cols[i] || '') : ''; };
+        const dk = cols[dateIdx] || ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(dk)) { skipped++; continue; }
+        const rt = (get('RecordType') || '').toUpperCase();
+        const looksPractice = rt === 'PRACTICE' || !!get('PracticeType') || !!get('PracticeBlocksJSON') || !!get('Eartraining');
+        if (looksPractice) {
+          let key = get('SessionKey'); if (!key || practiceBaseDate(key) !== dk || practice[key]) key = practiceNextKey(dk, practice);
+          let blocks = normalizePracticeBlocks([]); const blocksJson = get('PracticeBlocksJSON');
+          if (blocksJson) { try { blocks = normalizePracticeBlocks(JSON.parse(blocksJson)); } catch(e) {} }
+          practice[key] = {_sessionKey:key, date:dk, practiceType:get('PracticeType')||'Guitar', warmup:get('Warmup'), blocks, eartraining:get('Eartraining'), notes:get('Notes'), productivity:get('Productivity'), durationSeconds:Number(get('DurationSeconds')||0)||0, importedAt:new Date().toISOString()};
+          addedP++; continue;
+        }
+        let key = get('SessionKey'); if (!key || baseSessionDate(key) !== dk || all[key]) key = nextSessionKey(dk, all);
+        let exercises = blankExercises(); const exJson = get('ExercisesJSON');
+        if (exJson) { try { exercises = normalizeExercises(JSON.parse(exJson)); } catch(e) {} }
+        for (let i=1;i<=7;i++) {
+          const nm=get('Exercise'+i+'Name'), pl=get('Exercise'+i+'Plan'), ac=get('Exercise'+i+'Actual'), lk=get('Exercise'+i+'Locked'), ss=get('Exercise'+i+'Superset');
+          if (nm||pl||ac||lk||ss) exercises[i-1] = { name:nm, plan:pl, actual:ac, locked:lk==='1'||lk.toLowerCase()==='true', superset:ss==='1'||ss.toLowerCase()==='true' };
+        }
+        const miles=get('Miles'), isRunVal=get('IsRun');
+        const isRun = isRunVal==='1'||isRunVal.toLowerCase()==='true'||parseFloat(miles)>0;
+        all[key] = {_sessionKey:key, date:dk, workoutType:get('WorkoutType')||'Open', workoutName:get('WorkoutName')||'Imported', isCustom:true, fromHistory:true, className:get('ClassName'), instructor:get('Instructor'), duration:get('Duration'), warmup:get('Warmup'), warmupActual:get('WarmupActual'), jumps:get('Jumps'), jumpsActual:get('JumpsActual'), exercises, abs:get('Abs'), absActual:get('AbsActual'), isRun, miles, time:get('Time'), rpe:get('RPE'), notes:get('Notes'), sleep:get('Sleep'), readiness:get('Readiness'), soreness:get('Soreness'), knee:get('Knee'), hamstring:get('Hamstring'), stravaId:get('StravaId')};
+        addedW++;
+      }
+      saveAll(all); savePractice(practice); renderToday(); renderHistory(); if (document.getElementById('page-practice')?.classList.contains('active')) renderPractice();
+      toast(`Imported ${addedW} workout + ${addedP} practice row(s)${skipped?' · '+skipped+' skipped':''} ✓`);
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+};
+
 </script>
 
 <nav class="nav">
@@ -4695,6 +5285,11 @@ function clearSession() {
   <button class="nav-btn" id="nav-timer" onclick="show('timer')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><polyline points="12,9 12,13 14,15"/><path d="M9 2h6M12 2v2"/></svg>
     Timer
+  </button>
+
+  <button class="nav-btn" id="nav-practice" onclick="show('practice')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    Guitar
   </button>
   <button class="nav-btn" id="nav-settings" onclick="show('settings')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
